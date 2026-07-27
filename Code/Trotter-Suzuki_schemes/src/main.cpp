@@ -182,6 +182,90 @@ int main(int argc, char *argv[])
     }
     }
   }
+  else if (input.scalar_type == "quad")
+  {
+    switch (input.routine)
+    {
+    case 0:
+    {
+      if (input.mode == 0)
+      {
+        input.num_minim<quad>();
+      }
+      else if (input.mode == 1)
+      {
+        cout << "Symbolic minimization for quad is not implemented yet." << endl;
+      }
+      else
+      {
+        runtime_error("Invalid mode!");
+      }
+      break;
+    }
+    case 1:
+    {
+      if (input.mode == 0)
+      {
+        input.num_scheme<quad>();
+      }
+      else if (input.mode == 1)
+      {
+        cout << "Symbolic scheme for quad is not implemented yet." << endl;
+      }
+      else
+      {
+        runtime_error("Invalid mode!");
+      }
+      break;
+    }
+    default:
+    {
+      runtime_error("Invalid routine!");
+    }
+    }
+  }
+  else if (input.scalar_type == "complex_quad")
+  {
+    switch (input.routine)
+    {
+    case 0:
+    {
+      if (input.mode == 0)
+      {
+        input.num_minim<complex<quad>>();
+      }
+      else if (input.mode == 1)
+      {
+        cout << "Symbolic minimization for complex<quad> is not implemented yet." << endl;
+      }
+      else
+      {
+        runtime_error("Invalid mode!");
+      }
+      break;
+    }
+    case 1:
+    {
+      if (input.mode == 0)
+      {
+        input.num_scheme<complex<quad>>();
+      }
+      else if (input.mode == 1)
+      {
+        cout << "Symbolic scheme for complex<quad> is not implemented yet." << endl;
+      }
+      else
+      {
+        runtime_error("Invalid mode!");
+      }
+      break;
+    }
+    default:
+    {
+      runtime_error("Invalid routine!");
+    }
+    }
+  }
   else
   {
     runtime_error("Invalid scalar type!");

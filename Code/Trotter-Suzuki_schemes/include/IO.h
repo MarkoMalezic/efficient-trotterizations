@@ -7,14 +7,16 @@
 #include <fstream>
 #include <Eigen/Dense>
 #include "Scheme.h"
-#include "Minimization.h"
 #include "NScheme.h"
+#include "Minimization.h"
 #include "NMinimization.h"
 
 using Eigen::VectorXcd;
 using Eigen::VectorXd;
 using VectorXld = Eigen::Matrix<long double, Dynamic, 1>;
 using VectorXcld = Eigen::Matrix<complex<long double>, Dynamic, 1>;
+using VectorXQ = Eigen::Matrix<quad, Dynamic, 1>;
+using VectorXcQ = Eigen::Matrix<complex<quad>, Dynamic, 1>;
 
 using namespace std;
 
@@ -74,7 +76,7 @@ void print_sym_find(ostream &stream, const int &order, const int &no_cycles,
 
 template <typename RealT>
 void print_find1(ostream &stream, const int &tracker, const double &ratio,
-                 const RealT &eff2, const RealT &eff4, const RealT &eff6);
+                 const RealT &eff2, const RealT &eff4, const RealT &eff6, const RealT &eff8);
 
 template <typename Vec>
 void print_find2(ostream &stream, const Vec &a_vec, const Vec &b_vec);
@@ -97,7 +99,7 @@ public:
   ifstream rfile;
 
   int routine;         // Which routine to use (Minimization: 0, Scheme: 1)
-  int mode;            // Which mode to use (Numerical: 0, Symbolic: 1)
+  int mode;            // Which mode to use (Numeric: 0, Symbolic: 1)
   string scalar_type;  // Scalar type to use (double, complex<double>, long_double, complex<long_double>)
   string save_dir{""}; // File to save to (if not provided no writing occurs)
 
@@ -113,14 +115,14 @@ public:
 
   // *** Routines ***
 
-  // Numerical Minimization
+  // Numeric Minimization
   // Methods: - minimize: minimize the computed scheme manifold once using initial vector a_vec, b_vec
   //          - min_twostep: minimize the computed scheme manifold twice (constraint minimization in the 2. step)
   //          - find: find as many minima for the computed scheme manifold
   template <typename Scalar>
   void num_minim();
 
-  // Numerical Scheme
+  // Numeric Scheme
   // Computes the errors and efficiencies of the scheme for the provided a_vec and b_vec
   template <typename Scalar>
   void num_scheme();

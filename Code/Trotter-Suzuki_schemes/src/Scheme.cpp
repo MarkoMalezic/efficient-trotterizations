@@ -90,6 +90,18 @@ template <typename RealT>
 void Scheme<RealT>::step_A()
 {
   // Go down the order and take A steps, because higher orders need coefficients of smaller order
+  if (n >= 8)
+  {
+    for (int i{1}; i <= coefs.epsilons.size(); ++i)
+    {
+      coefs.epsilons_step(i);
+      if (verbose == 2)
+      {
+        cout << "step A: epsilon" << i << endl;
+        coefs.epsilons[i - 1].display_tensor();
+      }
+    }
+  }
   if (n >= 6)
   {
     for (int i{1}; i <= coefs.deltas.size(); ++i)
@@ -137,6 +149,21 @@ template <typename RealT>
 void Scheme<RealT>::step_B()
 {
   // Go down the order and take B steps, because higher orders need coefficients of smaller order
+  if (n >= 8)
+  {
+    // Reverse the coefficients of order 7
+    reverse(coefs.epsilons.begin(), coefs.epsilons.end());
+    for (int i{1}; i <= coefs.epsilons.size(); ++i)
+    {
+      coefs.epsilons_step(i);
+      if (verbose == 2)
+      {
+        cout << "step B: epsilon" << i << endl;
+        coefs.epsilons[i - 1].display_tensor();
+      }
+    }
+    reverse(coefs.epsilons.begin(), coefs.epsilons.end());
+  }
   if (n >= 6)
   {
     // Reverse the coefficients of order 7
@@ -272,9 +299,13 @@ void Scheme<RealT>::save(const string &directory)
   {
     order = 4;
   }
-  else
+  else if (q < 17)
   {
     order = 6;
+  }
+  else
+  {
+    order = 8;
   }
 
   string dir{directory + "n" + to_string(order) + "_q" + to_string(q) + "/"};
@@ -791,7 +822,6 @@ void Scheme<long double>::display_eff(const VectorXcld &a_eval, const VectorXcld
     }
   }
 }
-
 
 // Explicit instantiation of eff for required types
 template double Scheme<double>::eff<VectorXd>(const int &, const VectorXd &, const VectorXd &);

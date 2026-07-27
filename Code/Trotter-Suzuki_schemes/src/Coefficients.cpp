@@ -61,13 +61,12 @@ vector<pair<int, vector<int>>> get_vecpair(const int &ind, const int &pow, const
   return vecpair;
 }
 
-
 // Constructor for Coefficients
 template <typename RealT>
 Coefficients<RealT>::Coefficients(const int &n, const int &q,
                                   int &ind_A, int &ind_B, bool &swtch)
     : ind_A(ind_A), ind_B(ind_B), swtch(swtch),
-      alpha(q, {3, 1}), beta(q, {3, 2}), gammas(6), deltas(18)
+      alpha(q, {3, 1}), beta(q, {3, 2}), gammas(6), deltas(18), epsilons(56)
 {
   // Initialization of higher order only if desired
   if (n >= 4)
@@ -86,6 +85,16 @@ Coefficients<RealT>::Coefficients(const int &n, const int &q,
       deltas[i] = Tensor<RealT>(q, coef7i);
     }
   }
+  if (n >= 8)
+  {
+    cout << "Initializing epsilons..." << endl;
+    for (int i = 0; i < epsilons.size(); ++i)
+    {
+      cout << "Epsilon " << i + 1 << endl;
+      array<int, 2> coef9i = {9, static_cast<int>(i + 1)};
+      epsilons[i] = Tensor<RealT>(q, coef9i);
+    }
+  }
 }
 
 // Load constructor for Coefficients
@@ -93,7 +102,7 @@ template <typename RealT>
 Coefficients<RealT>::Coefficients(const string &directory, const int &n, const int &q,
                                   int &ind_A, int &ind_B, bool &swtch)
     : ind_A(ind_A), ind_B(ind_B), swtch(swtch),
-      alpha(q, {3, 1}), beta(q, {3, 2}), gammas(6), deltas(18)
+      alpha(q, {3, 1}), beta(q, {3, 2}), gammas(6), deltas(18), epsilons(56)
 {
   int order{};
   if (q < 3)
@@ -104,9 +113,13 @@ Coefficients<RealT>::Coefficients(const string &directory, const int &n, const i
   {
     order = 4;
   }
-  else
+  else if (q < 17)
   {
     order = 6;
+  }
+  else
+  {
+    order = 8;
   }
 
   string dir{directory + "n" + to_string(order) + "_q" + to_string(q) + "/"};
@@ -138,13 +151,22 @@ Coefficients<RealT>::Coefficients(const string &directory, const int &n, const i
       deltas[i].load(dir, "delta" + to_string(i + 1));
     }
   }
+  if (n >= 8)
+  {
+    for (int i = 0; i < epsilons.size(); ++i)
+    {
+      array<int, 2> coefi = {9, static_cast<int>(i + 1)};
+      epsilons[i] = Tensor<RealT>(q, coefi);
+      epsilons[i].load(dir, "epsilon" + to_string(i + 1));
+    }
+  }
 }
 
 // Copy constructor for Coefficients
 template <typename RealT>
 Coefficients<RealT>::Coefficients(const Coefficients<RealT> &other)
     : ind_A(other.ind_A), ind_B(other.ind_B), swtch(other.swtch),
-      alpha(other.alpha), beta(other.beta), gammas(other.gammas), deltas(other.deltas)
+      alpha(other.alpha), beta(other.beta), gammas(other.gammas), deltas(other.deltas), epsilons(other.epsilons)
 {
 }
 
@@ -155,11 +177,12 @@ Coefficients<RealT> &Coefficients<RealT>::operator=(const Coefficients<RealT> &o
   if (this != &other)
   {
     // Copy the members from the other object
-    // Assuming Coefficients has members like alpha, beta, gammas, deltas, etc.
+    // Assuming Coefficients has members like alpha, beta, gammas, deltas, epsilons, etc.
     alpha = other.alpha;
     beta = other.beta;
     gammas = other.gammas;
     deltas = other.deltas;
+    epsilons = other.epsilons;
     // Copy other members as needed
   }
   return *this;
@@ -176,6 +199,7 @@ Coefficients<RealT> &Coefficients<RealT>::operator=(Coefficients<RealT> &&other)
     beta = std::move(other.beta);
     gammas = std::move(other.gammas);
     deltas = std::move(other.deltas);
+    epsilons = std::move(other.epsilons);
     // Move other members as needed
   }
   return *this;
@@ -1468,6 +1492,217 @@ void *Coefficients<RealT>::deltas_step(const int &delta_ind)
   }
   default:
     throw invalid_argument("Invalid delta index");
+  }
+  return nullptr;
+}
+
+// Method to update the epsilon coefficients by switching between operators A, B
+template <typename RealT>
+void *Coefficients<RealT>::epsilons_step(const int &epsilon_ind)
+{
+  // Prefactor initialization
+  RealT alpha_Q = prefacs.alpha;
+  RealT beta_Q = prefacs.beta;
+  vector<RealT> gammas_Q = prefacs.gammas;
+  vector<RealT> deltas_Q = prefacs.deltas;
+  vector<RealT> epsilons_Q = prefacs.epsilons;
+  // !!! Very memory intensive !!!
+  // ** Not implemented fully **
+  switch (epsilon_ind)
+  {
+  case 1:
+  {
+    // First term
+    array<int, 2> pows_A1{{8, 0}};
+    array<int, 2> pows_B1{{0, 1}};
+    add_combs(epsilons[epsilon_ind-1], epsilons_Q[0], pows_A1, pows_B1);
+
+    // Second term
+    array<int, 2> pows_A2{{7, 1}};
+    array<int, 2> pows_B2{{0, 1}};
+    add_combs(epsilons[epsilon_ind-1], epsilons_Q[1] + epsilons_Q[2] + epsilons_Q[3] + epsilons_Q[4], pows_A2, pows_B2);
+
+    // Third term
+    array<int, 2> pows_A3{{6, 2}};
+    array<int, 2> pows_B3{{0, 1}};
+    add_combs(epsilons[epsilon_ind-1], epsilons_Q[5] + epsilons_Q[6] + epsilons_Q[7] + epsilons_Q[8] + epsilons_Q[9] + epsilons_Q[10] + epsilons_Q[11] + epsilons_Q[12] + epsilons_Q[13], pows_A3, pows_B3);
+
+    // Fourth term
+    array<int, 2> pows_A4{{5, 3}};
+    array<int, 2> pows_B4{{0, 1}};
+    add_combs(epsilons[epsilon_ind-1], epsilons_Q[14] + epsilons_Q[15] + epsilons_Q[16] + epsilons_Q[17] + epsilons_Q[18] + epsilons_Q[19] + epsilons_Q[20] + epsilons_Q[21] + epsilons_Q[22] + epsilons_Q[23] + epsilons_Q[24] + epsilons_Q[25] + epsilons_Q[26] + epsilons_Q[27], pows_A4, pows_B4);
+
+    // Fifth term
+    array<int, 2> pows_A5{{4, 4}};
+    array<int, 2> pows_B5{{0, 1}};
+    add_combs(epsilons[epsilon_ind-1], -(epsilons_Q[28] + epsilons_Q[29] + epsilons_Q[30] + epsilons_Q[31] + epsilons_Q[32] + epsilons_Q[33] + epsilons_Q[34] + epsilons_Q[35] + epsilons_Q[36] + epsilons_Q[37] + epsilons_Q[38] + epsilons_Q[39] + epsilons_Q[40] + epsilons_Q[41]), pows_A5, pows_B5);
+
+    // Sixth term
+    array<int, 2> pows_A6{{3, 5}};
+    array<int, 2> pows_B6{{0, 1}};
+    add_combs(epsilons[epsilon_ind-1], -(epsilons_Q[42] + epsilons_Q[43] + epsilons_Q[44] + epsilons_Q[45] + epsilons_Q[46] + epsilons_Q[47] + epsilons_Q[48] + epsilons_Q[49] + epsilons_Q[50]), pows_A6, pows_B6);
+
+    // Seventh term
+    array<int, 2> pows_A7{{2, 6}};
+    array<int, 2> pows_B7{{0, 1}};
+    add_combs(epsilons[epsilon_ind-1], -(epsilons_Q[51] + epsilons_Q[52] + epsilons_Q[53] + epsilons_Q[54]), pows_A7, pows_B7);
+
+    // Eighth term
+    array<int, 2> pows_A8{{1, 7}};
+    array<int, 2> pows_B8{{0, 1}};
+    add_combs(epsilons[epsilon_ind-1], -epsilons_Q[55], pows_A8, pows_B8);
+
+    // Ninth term
+    array<int, 2> pows_A9{{6, 0}};
+    array<int, 2> pows_B9{{0, 0}};
+    swtch ? add_combs_transf(epsilons[epsilon_ind-1], {beta}, deltas_Q[0], pows_A9, pows_B9) :
+            add_combs_transf(epsilons[epsilon_ind-1], {alpha}, deltas_Q[0], pows_A9, pows_B9);
+
+    // Tenth term
+    array<int, 2> pows_A10{{5, 1}};
+    array<int, 2> pows_B10{{0, 0}};
+    swtch ? add_combs_transf(epsilons[epsilon_ind-1], {beta}, deltas_Q[1] + deltas_Q[2] + deltas_Q[3], pows_A10, pows_B10) :
+            add_combs_transf(epsilons[epsilon_ind-1], {alpha}, deltas_Q[1] + deltas_Q[2] + deltas_Q[3], pows_A10, pows_B10);
+
+    // Eleventh term
+    array<int, 2> pows_A11{{4, 2}};
+    array<int, 2> pows_B11{{0, 0}};
+    swtch ? add_combs_transf(epsilons[epsilon_ind-1], {beta}, deltas_Q[4] + deltas_Q[5] + deltas_Q[6] + deltas_Q[7] + deltas_Q[8], pows_A11, pows_B11) :
+            add_combs_transf(epsilons[epsilon_ind-1], {alpha}, deltas_Q[4] + deltas_Q[5] + deltas_Q[6] + deltas_Q[7] + deltas_Q[8], pows_A11, pows_B11);
+
+    // Twelfth term
+    array<int, 2> pows_A12{{3, 3}};
+    array<int, 2> pows_B12{{0, 0}};
+    swtch ? add_combs_transf(epsilons[epsilon_ind-1], {beta}, -(deltas_Q[9] + deltas_Q[10] + deltas_Q[11] + deltas_Q[12] + deltas_Q[13]), pows_A12, pows_B12) :
+            add_combs_transf(epsilons[epsilon_ind-1], {alpha}, -(deltas_Q[9] + deltas_Q[10] + deltas_Q[11] + deltas_Q[12] + deltas_Q[13]), pows_A12, pows_B12);
+
+    // Thirteenth term
+    array<int, 2> pows_A13{{2, 4}};
+    array<int, 2> pows_B13{{0, 0}};
+    swtch ? add_combs_transf(epsilons[epsilon_ind-1], {beta}, -(deltas_Q[14] + deltas_Q[15] + deltas_Q[16]), pows_A13, pows_B13) :
+            add_combs_transf(epsilons[epsilon_ind-1], {alpha}, -(deltas_Q[14] + deltas_Q[15] + deltas_Q[16]), pows_A13, pows_B13);
+
+    // Fourteenth term
+    array<int, 2> pows_A14{{1, 5}};
+    array<int, 2> pows_B14{{0, 0}};
+    swtch ? add_combs_transf(epsilons[epsilon_ind-1], {beta}, -deltas_Q[17], pows_A14, pows_B14) :
+            add_combs_transf(epsilons[epsilon_ind-1], {alpha}, -deltas_Q[17], pows_A14, pows_B14);
+
+    // Fifteenth term
+    array<int, 2> pows_A15{{4, 0}};
+    array<int, 2> pows_B15{{0, 0}};
+    swtch ? add_combs_transf(epsilons[epsilon_ind-1], {gammas[5]}, gammas_Q[0], pows_A15, pows_B15) :
+            add_combs_transf(epsilons[epsilon_ind-1], {gammas[0]}, gammas_Q[0], pows_A15, pows_B15);
+
+    // Sixteenth term
+    array<int, 2> pows_A16{{3, 1}};
+    array<int, 2> pows_B16{{0, 0}};
+    swtch ? add_combs_transf(epsilons[epsilon_ind-1], {gammas[5]}, gammas_Q[1] + gammas_Q[2], pows_A16, pows_B16) :
+            add_combs_transf(epsilons[epsilon_ind-1], {gammas[0]}, gammas_Q[1] + gammas_Q[2], pows_A16, pows_B16);
+
+    // Seventeenth term
+    array<int, 2> pows_A17{{2, 2}};
+    array<int, 2> pows_B17{{0, 0}};
+    swtch ? add_combs_transf(epsilons[epsilon_ind-1], {gammas[5]}, -(gammas_Q[3] + gammas_Q[4]), pows_A17, pows_B17) :
+            add_combs_transf(epsilons[epsilon_ind-1], {gammas[0]}, -(gammas_Q[3] + gammas_Q[4]), pows_A17, pows_B17);
+
+    // Eighteenth term
+    array<int, 2> pows_A18{{1, 3}};
+    array<int, 2> pows_B18{{0, 0}};
+    swtch ? add_combs_transf(epsilons[epsilon_ind-1], {gammas[5]}, -gammas_Q[5], pows_A18, pows_B18) :
+            add_combs_transf(epsilons[epsilon_ind-1], {gammas[0]}, -gammas_Q[5], pows_A18, pows_B18);
+
+    // Nineteenth term
+    array<int, 2> pows_A19{{2, 0}};
+    array<int, 2> pows_B19{{0, 0}};
+    swtch ? add_combs_transf(epsilons[epsilon_ind-1], {deltas[17]}, alpha_Q, pows_A19, pows_B19) :
+            add_combs_transf(epsilons[epsilon_ind-1], {deltas[0]}, alpha_Q, pows_A19, pows_B19);
+
+    // Twentieth term
+    array<int, 2> pows_A20{{1, 1}};
+    array<int, 2> pows_B20{{0, 0}};
+    swtch ? add_combs_transf(epsilons[epsilon_ind-1], {deltas[17]}, -beta_Q, pows_A20, pows_B20) :
+            add_combs_transf(epsilons[epsilon_ind-1], {deltas[0]}, -beta_Q, pows_A20, pows_B20);
+    break;
+  }
+  case 2:
+  {
+    break;
+  }
+  case 3:
+  {
+    break;
+  }
+  case 4:
+  {
+    break;
+  }
+  case 5:
+  {
+    break;
+  }
+  case 6:
+  {
+    break;
+  }
+  case 7:
+  {
+    break;
+  }
+  case 8:
+  {
+    break;
+  }
+  case 9:
+  {
+    break;
+  }
+  case 10:
+  {
+    break;
+  }
+  case 11:
+  {
+    break;
+  }
+  case 12:
+  {
+    break;
+  }
+  case 13:
+  {
+    break;
+  }
+  case 14:
+  {
+    break;
+  }
+  case 15:
+  {
+    break;
+  }
+  case 16:
+  {
+    break;
+  }
+  case 17:
+  {
+    break;
+  }
+  case 18:
+  {
+    break;
+  }
+  case 56:
+  {
+    // First term
+    array<int, 2> pows_A1{{1, 0}};
+    array<int, 2> pows_B1{{0, 8}};
+    add_combs(epsilons[epsilon_ind-1], epsilons_Q[55], pows_A1, pows_B1);
+    break;
+  }
+  default:
+    throw invalid_argument("Invalid epsilon index");
   }
   return nullptr;
 }

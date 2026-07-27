@@ -16,6 +16,10 @@ NMinimization<Vec>::NMinimization(const Vec &a_init, const Vec &b_init, const Re
   {
     W = DiagonalMatrix<RealT, Dynamic>(VectorXld::Map(W_vec.data(), W_vec.size()));
   }
+  else if constexpr (is_same_v<Vec, VectorXQ> || is_same_v<Vec, VectorXcQ>)
+  {
+    W = DiagonalMatrix<RealT, Dynamic>(VectorXQ::Map(W_vec.data(), W_vec.size()));
+  }
 
   // The number of parameters is dependent on even/odd number of cycles
   if (q % 2 == 0)
@@ -50,6 +54,11 @@ NMinimization<Vec>::NMinimization(const Vec &a_init, const Vec &b_init, const Re
     m = 26;
     break;
   }
+  case 8:
+  {
+    m = 82;
+    break;
+  }
   default:
     throw invalid_argument("Invalid order");
   }
@@ -69,6 +78,10 @@ NMinimization<Vec>::NMinimization(const RealT step, const int &n, const int &q, 
   else if constexpr (is_same_v<Vec, VectorXld> || is_same_v<Vec, VectorXcld>)
   {
     W = DiagonalMatrix<RealT, Dynamic>(VectorXld::Map(W_vec.data(), W_vec.size()));
+  }
+  else if constexpr (is_same_v<Vec, VectorXQ> || is_same_v<Vec, VectorXcQ>)
+  {
+    W = DiagonalMatrix<RealT, Dynamic>(VectorXQ::Map(W_vec.data(), W_vec.size()));
   }
 
   // The number of parameters is dependent on even/odd number of cycles
@@ -100,6 +113,11 @@ NMinimization<Vec>::NMinimization(const RealT step, const int &n, const int &q, 
   case 6:
   {
     m = 26;
+    break;
+  }
+  case 8:
+  {
+    m = 82;
     break;
   }
   default:
@@ -136,6 +154,13 @@ Vec NMinimization<Vec>::y_eval(const Vec &a_eval, const Vec &b_eval)
       y(i + 8) = scheme.coefs.deltas[i];
     }
   }
+  if (n >= 8)
+  {
+    for (size_t i{0}; i < scheme.coefs.epsilons.size(); ++i)
+    {
+      y(i + 26) = scheme.coefs.epsilons[i];
+    }
+  }
   return y;
 }
 
@@ -167,10 +192,24 @@ Vec NMinimization<Vec>::y_eval_origin(const Vec &a_eval, const Vec &b_eval, cons
       y(i + 8) = (1 - ratio) * scheme.coefs.deltas[i];
     }
   }
-
+  else if (n == 8)
+  {
+    for (size_t i{0}; i < scheme.coefs.gammas.size(); ++i)
+    {
+      y(i + 2) = scheme.coefs.gammas[i];
+    }
+    for (size_t i{0}; i < scheme.coefs.deltas.size(); ++i)
+    {
+      y(i + 8) = scheme.coefs.deltas[i];
+    }
+    for (size_t i{0}; i < scheme.coefs.epsilons.size(); ++i)
+    {
+      y(i + 26) = (1 - ratio) * scheme.coefs.epsilons[i];
+    }
+  }
   // Add the extra term to the end of the y_eval vector
   pair<Vec, Vec> cd_vec{to_ramp(q, a_eval, b_eval)};
-  Scalar x_bar2 = 0.0;
+  Scalar x_bar2 = Scalar(0.0);
   for(int i{0}; i < q; i++)
   {
     x_bar2 += pow(cd_vec.first[i] - Scalar(1.0 / (2*q)), 2);
@@ -354,12 +393,6 @@ MinResult<Vec> NMinimization<Vec>::minimize(RealT lambda, const HessMatrixForVec
       break;
     }
 
-    // cout << "Gradient: \n" << JtWy << endl;
-
-    // Eigen::SelfAdjointEigenSolver<MatrixXd> solver(JtWJ);
-    // VectorXd eigs = solver.eigenvalues();
-    // std::cout << "Eigenvalues (Hessian): \n" << eigs << std::endl;
-
     // Evaluate the left-hand side of the step equation
     left = JtWJ + lambda * diag;
 
@@ -397,9 +430,8 @@ MinResult<Vec> NMinimization<Vec>::minimize(RealT lambda, const HessMatrixForVec
       break;
     }
 
-    // Compute the metric and accept the step if it is larger than eps4
-    metric = (chi2 - chi2n) / abs_dot_prod(h, (lambda * diag * h + JtWy).eval());
-    if (metric > eps[3])
+    // Accept the step if the difference is larger than the tolerance (always go downhill with some numerical instability tolerance)
+    if (chi2 - chi2n > -eps[3])
     {
       // Calculate the difference in change for a_vec and b_vec and store in MinResult
       mini.da_vec.head(nps[1] - 1) = h.head(nps[1] - 1);
@@ -457,6 +489,13 @@ MinResult<Vec> NMinimization<Vec>::minimize(RealT lambda, const HessMatrixForVec
     for (int i{0}; i < 18; ++i)
     {
       mini.err2 += pow(abs(y[i+8]), 2);
+    }
+  }
+  else if (n == 8)
+  {
+    for (int i{0}; i < 56; ++i)
+    {
+      mini.err2 += pow(abs(y[i+26]), 2);
     }
   }
 
@@ -579,9 +618,8 @@ MinResult<Vec> NMinimization<Vec>::minimize_origin(RealT lambda, const RealT rat
       break;
     }
 
-    // Compute the metric and accept the step if it is larger than eps4
-    metric = (chi2 - chi2n) / abs_dot_prod(h, (lambda * diag * h + JtWy).eval());
-    if (metric > eps[3])
+    // Accept the step if the difference is larger than the tolerance (always go downhill with some numerical instability tolerance)
+    if (chi2 - chi2n > -eps[3])
     {
       // Calculate the difference in change for a_vec and b_vec and store in MinResult
       mini.da_vec.head(nps[1] - 1) = h.head(nps[1] - 1);
@@ -641,6 +679,13 @@ MinResult<Vec> NMinimization<Vec>::minimize_origin(RealT lambda, const RealT rat
       mini.err2 += pow(abs(y[i+8]), 2);
     }
   }
+  else if (n == 8)
+  {
+    for (int i{0}; i < 56; ++i)
+    {
+      mini.err2 += pow(abs(y[i+26]), 2);
+    }
+  }
 
   mini.hess = JtWJ;
   mini.a_vec = a_vec;
@@ -668,13 +713,8 @@ MinResult<Vec> NMinimization<Vec>::min_twostep(RealT lambda, const array<RealT, 
     mini1.display();
   }
 
-  // Return the result if the minimization has not converged
-  if (mini1.conv == 0)
-  {
-    return mini1;
-  }
 
-  // Adjust the weights to impose the constraint
+  // Lower the order and adjust the weights to impose the constraint
   switch (n)
   {
   case 2:
@@ -684,18 +724,23 @@ MinResult<Vec> NMinimization<Vec>::min_twostep(RealT lambda, const array<RealT, 
   }
   case 4:
   {
-    for (int i{2}; i < 8; ++i)
-    {
-      W.diagonal()(i) = 0.0;
-    }
+    n = 2;
+    m = 2;
+    W.diagonal().conservativeResize(2);
     break;
   }
   case 6:
   {
-    for (int i{8}; i < 26; ++i)
-    {
-      W.diagonal()(i) = 0.0;
-    }
+    n = 4;
+    m = 8;
+    W.diagonal().conservativeResize(8);
+    break;
+  }
+  case 8:
+  {
+    n = 6;
+    m = 26;
+    W.diagonal().conservativeResize(26);
     break;
   }
   default:
@@ -746,13 +791,7 @@ MinResult<Vec> NMinimization<Vec>::min_twostep_origin(RealT lambda, const RealT 
     mini1.display();
   }
 
-  // Return the result if the minimization has not converged
-  if (mini1.conv == 0)
-  {
-    return mini1;
-  }
-
-  // Adjust the weights to impose the constraint
+  // Lower the order and adjust the weights to impose the constraint
   switch (n)
   {
   case 2:
@@ -762,25 +801,23 @@ MinResult<Vec> NMinimization<Vec>::min_twostep_origin(RealT lambda, const RealT 
   }
   case 4:
   {
-    for (int i{2}; i < 8; ++i)
-    {
-      W.diagonal()(i) = 0.0;
-    }
-    W.diagonal()(m) = 0.0;
+    n = 2;
+    m = 2;
+    W.diagonal().conservativeResize(2);
     break;
   }
   case 6:
   {
-    RealT w4 = W.diagonal()(2);
-    for (int i{2}; i < 8; ++i)
-    {
-      W.diagonal()(i) = w4;
-    }
-    for (int i{8}; i < 26; ++i)
-    {
-      W.diagonal()(i) = 0.0;
-    }
-    W.diagonal()(m) = 0.0;
+    n = 4;
+    m = 8;
+    W.diagonal().conservativeResize(8);
+    break;
+  }
+  case 8:
+  {
+    n = 6;
+    m = 26;
+    W.diagonal().conservativeResize(26);
     break;
   }
   default:
@@ -793,16 +830,17 @@ MinResult<Vec> NMinimization<Vec>::min_twostep_origin(RealT lambda, const RealT 
     eps = *eps2;
   }
 
+  // Minimize without the origin point and just impose the constraints
   MinResult<Vec> mini2;
   // Minimize with the new weights and the hessian from the previous step
   if (freeze)
   {
-    mini2 = minimize_origin(lambda, ratio, &mini1.hess, verbose);
+    mini2 = minimize(lambda, &mini1.hess, verbose);
   }
   // Minimize with the new weights without freezing the hessian
   else
   {
-    mini2 = minimize_origin(lambda, ratio, nullptr, verbose);
+    mini2 = minimize(lambda, nullptr, verbose);
   }
 
   if (verbose)
@@ -825,7 +863,7 @@ template <typename Vec>
 pair<array<vector<Vec>, 4>, vector<int>> NMinimization<Vec>::find(const int &N, RealT &lambda, const int &steps,
                                                                   const Scalar &mu, const Scalar &sigma,
                                                                   const array<RealT, 4> *eps2, const bool &bsort, const bool &verbose,
-                                                                  const double &tol, const bool &freeze)
+                                                                  const RealT &tol, const bool &freeze)
 {
   // Declare the vectors of found minima and their "errors"
   vector<Vec> a_vecs;
@@ -861,10 +899,14 @@ pair<array<vector<Vec>, 4>, vector<int>> NMinimization<Vec>::find(const int &N, 
     }
     else
     {
-      // Change to include more steps if needed
+      // Copy the weights and dimensions to restore them after the two-step minimization
       DiagonalMatrix<RealT, Dynamic> W_copy{W};
+      int n_copy{n};
+      int m_copy{m};
       mini = min_twostep(lambda, eps2, false, freeze);
       W = W_copy;
+      n = n_copy;
+      m = m_copy;
     }
 
     if (verbose)
@@ -933,473 +975,19 @@ pair<array<vector<Vec>, 4>, vector<int>> NMinimization<Vec>::find(const int &N, 
   // Sort the vectors by err2 (low -> high) if desired
   if (bsort)
   {
+    // Find the leading order error for each minimum
+    vector<RealT> lead_error(err2s.size());
+    for (size_t i{0}; i < err2s.size(); ++i)
+    {
+      NScheme scheme(n, q, a_vecs[i], b_vecs[i], 0);
+      scheme.iterate();
+      lead_error[i] = scheme.err2(n);
+    }
     // Find the indices of the sorted array and sort the Chi2 values
-    vector<size_t> inds(err2s.size());
+    vector<size_t> inds(lead_error.size());
     iota(inds.begin(), inds.end(), 0);
-    sort(inds.begin(), inds.end(), [&err2s](size_t i1, size_t i2)
-         { return err2s[i1] < err2s[i2]; });
-
-    // Then sort the minima as well
-    vector<Vec> sorted_a_vecs(a_vecs.size());
-    vector<Vec> sorted_b_vecs(b_vecs.size());
-    vector<Vec> sorted_da_vecs(da_vecs.size());
-    vector<Vec> sorted_db_vecs(db_vecs.size());
-    vector<int> sorted_min_convs(min_convs.size());
-    for (size_t i{0}; i < inds.size(); ++i)
-    {
-      sorted_a_vecs[i] = a_vecs[inds[i]];
-      sorted_b_vecs[i] = b_vecs[inds[i]];
-      sorted_da_vecs[i] = da_vecs[inds[i]];
-      sorted_db_vecs[i] = db_vecs[inds[i]];
-      sorted_min_convs[i] = min_convs[inds[i]];
-    }
-
-    array<vector<Vec>, 4> sorted_ab_vecs{{sorted_a_vecs, sorted_da_vecs,
-                                          sorted_b_vecs, sorted_db_vecs}};
-    pair<array<vector<Vec>, 4>, vector<int>> result;
-    result.first = sorted_ab_vecs;
-    result.second = sorted_min_convs;
-    return result;
-  }
-  else
-  {
-    array<vector<Vec>, 4> ab_vecs{{a_vecs, da_vecs,
-                                   b_vecs, db_vecs}};
-    pair<array<vector<Vec>, 4>, vector<int>> result;
-    result.first = ab_vecs;
-    result.second = min_convs;
-    return result;
-  }
-}
-
-template <typename Vec>
-pair<array<vector<Vec>, 4>, vector<int>> NMinimization<Vec>::find(const int &N, RealT &lambda, const int &steps,
-                                                                  const vector<Scalar> &mus, const Scalar &sigma,
-                                                                  const array<RealT, 4> *eps2, const bool &bsort, const bool &verbose,
-                                                                  const double &tol, const bool &freeze)
-{
-  // Declare the vectors of found minima and their "errors"
-  vector<Vec> a_vecs;
-  vector<Vec> b_vecs;
-  vector<Vec> da_vecs;
-  vector<Vec> db_vecs;
-  vector<int> min_convs;
-  vector<RealT> err2s;
-
-  // Declare the helper vectors to compare the found minima vectors
-  Vec v1(nps[0] + nps[1]);
-  Vec v2(nps[0] + nps[1]);
-
-  // Declare the MinResult
-  MinResult<Vec> mini;
-
-  array<Vec, 2> ab_vec;
-  int convs{0};
-  // Iterate until the maximal initial condition
-  for (int i{0}; i < N; ++i)
-  {
-    cout << "\r" << "Initial condition: " << i + 1 << flush;
-
-    // Sample the initial conditions
-    ab_vec = sample<Vec, Scalar>(mus, sigma, nps);
-    a_vec = ab_vec[0];
-    b_vec = ab_vec[1];
-
-    // Take either 1 minimization step or multiple
-    if (steps == 1)
-    {
-      mini = minimize(lambda);
-    }
-    else
-    {
-      // Change to include more steps if needed
-      DiagonalMatrix<RealT, Dynamic> W_copy{W};
-      mini = min_twostep(lambda, eps2, false, freeze);
-      W = W_copy;
-    }
-
-    if (verbose)
-    {
-      cout << endl;
-      mini.display();
-    }
-
-    // Only continue if the minimization has converged
-    if (mini.conv)
-    {
-      convs += 1;
-      // Append the first found minima
-      if (a_vecs.empty())
-      {
-        a_vecs.push_back(mini.a_vec);
-        b_vecs.push_back(mini.b_vec);
-        da_vecs.push_back(mini.da_vec);
-        db_vecs.push_back(mini.db_vec);
-        min_convs.push_back(1);
-        err2s.push_back(mini.err2);
-      }
-      else
-      {
-        // For the next minima check if the new one is already included
-        size_t ab_size{a_vecs.size()};
-        bool included{false};
-        for (size_t j{0}; j < ab_size; ++j)
-        {
-          v1.head(nps[1]) = a_vecs[j];
-          v1.tail(nps[0]) = b_vecs[j];
-          v2.head(nps[1]) = mini.a_vec;
-          v2.tail(nps[0]) = mini.b_vec;
-          // Compare the minima and break the loop if they are the same
-          if (compare_min(v1, v2, tol))
-          {
-            included = true;
-            min_convs[j] += 1;
-            // Also replace the new minimum with the old one if the Chi2 value is smaller
-            if (mini.err2 < err2s[j])
-            {
-              a_vecs[j] = mini.a_vec;
-              b_vecs[j] = mini.b_vec;
-              da_vecs[j] = mini.da_vec;
-              db_vecs[j] = mini.db_vec;
-              err2s[j] = mini.err2;
-            }
-            break;
-          }
-        }
-        // If the new minimum isn't included, then append it
-        if (!included)
-        {
-          a_vecs.push_back(mini.a_vec);
-          b_vecs.push_back(mini.b_vec);
-          da_vecs.push_back(mini.da_vec);
-          db_vecs.push_back(mini.db_vec);
-          min_convs.push_back(1);
-          err2s.push_back(mini.err2);
-        }
-      }
-    }
-  }
-  cout << endl;
-
-  // Sort the vectors by err2 (low -> high) if the desired
-  if (bsort)
-  {
-    // Find the indices of the sorted array and sort the Chi2 values
-    vector<size_t> inds(err2s.size());
-    iota(inds.begin(), inds.end(), 0);
-    sort(inds.begin(), inds.end(), [&err2s](size_t i1, size_t i2)
-         { return err2s[i1] < err2s[i2]; });
-
-    // Then sort the minima as well
-    vector<Vec> sorted_a_vecs(a_vecs.size());
-    vector<Vec> sorted_b_vecs(b_vecs.size());
-    vector<Vec> sorted_da_vecs(da_vecs.size());
-    vector<Vec> sorted_db_vecs(db_vecs.size());
-    vector<int> sorted_min_convs(min_convs.size());
-    for (size_t i{0}; i < inds.size(); ++i)
-    {
-      sorted_a_vecs[i] = a_vecs[inds[i]];
-      sorted_b_vecs[i] = b_vecs[inds[i]];
-      sorted_da_vecs[i] = da_vecs[inds[i]];
-      sorted_db_vecs[i] = db_vecs[inds[i]];
-      sorted_min_convs[i] = min_convs[inds[i]];
-    }
-
-    array<vector<Vec>, 4> sorted_ab_vecs{{sorted_a_vecs, sorted_da_vecs,
-                                          sorted_b_vecs, sorted_db_vecs}};
-    pair<array<vector<Vec>, 4>, vector<int>> result;
-    result.first = sorted_ab_vecs;
-    result.second = sorted_min_convs;
-    return result;
-  }
-  else
-  {
-    array<vector<Vec>, 4> ab_vecs{{a_vecs, da_vecs,
-                                   b_vecs, db_vecs}};
-    pair<array<vector<Vec>, 4>, vector<int>> result;
-    result.first = ab_vecs;
-    result.second = min_convs;
-    return result;
-  }
-}
-
-// Method to find as many minima of the polynomial manifold with the additional term
-// Input: - N, Number of maximal initial values
-//        - lambda, initial value for the damping coefficent
-//        - ratio, ratio between the theoretical error and the distance from the origin
-//        - steps, number of minimization steps to take (not the number of iterations with a minimization process)
-//        - mu, the average of the initial value distribution
-//        - sigma, the variance of the initial value distribution
-//        - eps2 - Convergence criteria in the second step if needed
-//        - bsort, if true the method sorts the minima by err2 values low->high
-template <typename Vec>
-pair<array<vector<Vec>, 4>, vector<int>> NMinimization<Vec>::find_origin(const int &N, RealT &lambda, const RealT ratio, const int &steps,
-                                                                         const Scalar &mu, const Scalar &sigma,
-                                                                         const array<RealT, 4> *eps2, const bool &bsort, const bool &verbose,
-                                                                         const double &tol, const bool &freeze)
-{
-  // Declare the vectors of found minima and their "errors"
-  vector<Vec> a_vecs;
-  vector<Vec> b_vecs;
-  vector<Vec> da_vecs;
-  vector<Vec> db_vecs;
-  vector<int> min_convs;
-  vector<RealT> err2s;
-
-  // Declare the helper vectors to compare the found minima vectors
-  Vec v1(nps[0] + nps[1]);
-  Vec v2(nps[0] + nps[1]);
-  
-  // Declare the MinResult
-  MinResult<Vec> mini;
-
-  array<Vec, 2> ab_vec;
-  int convs{0};
-  // Iterate until the maximal initial condition
-  for (int i{0}; i < N; ++i)
-  {
-    cout << "\r" << "Initial condition: " << i + 1 << flush;
-
-    // Sample the initial conditions
-    ab_vec = sample<Vec, Scalar>(mu, sigma, nps);
-    a_vec = ab_vec[0];
-    b_vec = ab_vec[1];
-
-    // Take either 1 minimization step or multiple
-    if (steps == 1)
-    {
-      mini = minimize_origin(lambda, ratio);
-    }
-    else
-    {
-      // Change to include more steps if needed
-      DiagonalMatrix<RealT, Dynamic> W_copy{W};
-      mini = min_twostep_origin(lambda, ratio, eps2, false, freeze);
-      W = W_copy;
-    }
-
-    if (verbose)
-    {
-      cout << endl;
-      mini.display();
-    }
-
-    // Only continue if the minimization has converged
-    if (mini.conv)
-    {
-      convs += 1;
-      // Append the first found minima
-      if (a_vecs.empty())
-      {
-        a_vecs.push_back(mini.a_vec);
-        b_vecs.push_back(mini.b_vec);
-        da_vecs.push_back(mini.da_vec);
-        db_vecs.push_back(mini.db_vec);
-        min_convs.push_back(1);
-        err2s.push_back(mini.err2);
-      }
-      else
-      {
-        // For the next minima check if the new one is already included
-        size_t ab_size{a_vecs.size()};
-        bool included{false};
-        for (size_t j{0}; j < ab_size; ++j)
-        {
-          v1.head(nps[1]) = a_vecs[j];
-          v1.tail(nps[0]) = b_vecs[j];
-          v2.head(nps[1]) = mini.a_vec;
-          v2.tail(nps[0]) = mini.b_vec;
-          // Compare the minima and break the loop if they are the same
-          if (compare_min(v1, v2, tol))
-          {
-            included = true;
-            min_convs[j] += 1;
-            // Also replace the new minimum with the old one if the Chi2 value is smaller
-            if (mini.err2 < err2s[j])
-            {
-              a_vecs[j] = mini.a_vec;
-              b_vecs[j] = mini.b_vec;
-              da_vecs[j] = mini.da_vec;
-              db_vecs[j] = mini.db_vec;
-              err2s[j] = mini.err2;
-            }
-            break;
-          }
-        }
-        // If the new minimum isn't included, then append it
-        if (!included)
-        {
-          a_vecs.push_back(mini.a_vec);
-          b_vecs.push_back(mini.b_vec);
-          da_vecs.push_back(mini.da_vec);
-          db_vecs.push_back(mini.db_vec);
-          min_convs.push_back(1);
-          err2s.push_back(mini.err2);
-        }
-      }
-    }
-  }
-  cout << endl;
-
-  // Sort the vectors by err2 (low -> high) if desired
-  if (bsort)
-  {
-    // Find the indices of the sorted array and sort the Chi2 values
-    vector<size_t> inds(err2s.size());
-    iota(inds.begin(), inds.end(), 0);
-    sort(inds.begin(), inds.end(), [&err2s](size_t i1, size_t i2)
-         { return err2s[i1] < err2s[i2]; });
-
-    // Then sort the minima as well
-    vector<Vec> sorted_a_vecs(a_vecs.size());
-    vector<Vec> sorted_b_vecs(b_vecs.size());
-    vector<Vec> sorted_da_vecs(da_vecs.size());
-    vector<Vec> sorted_db_vecs(db_vecs.size());
-    vector<int> sorted_min_convs(min_convs.size());
-    for (size_t i{0}; i < inds.size(); ++i)
-    {
-      sorted_a_vecs[i] = a_vecs[inds[i]];
-      sorted_b_vecs[i] = b_vecs[inds[i]];
-      sorted_da_vecs[i] = da_vecs[inds[i]];
-      sorted_db_vecs[i] = db_vecs[inds[i]];
-      sorted_min_convs[i] = min_convs[inds[i]];
-    }
-
-    array<vector<Vec>, 4> sorted_ab_vecs{{sorted_a_vecs, sorted_da_vecs,
-                                          sorted_b_vecs, sorted_db_vecs}};
-    pair<array<vector<Vec>, 4>, vector<int>> result;
-    result.first = sorted_ab_vecs;
-    result.second = sorted_min_convs;
-    return result;
-  }
-  else
-  {
-    array<vector<Vec>, 4> ab_vecs{{a_vecs, da_vecs,
-                                   b_vecs, db_vecs}};
-    pair<array<vector<Vec>, 4>, vector<int>> result;
-    result.first = ab_vecs;
-    result.second = min_convs;
-    return result;
-  }
-}
-
-template <typename Vec>
-pair<array<vector<Vec>, 4>, vector<int>> NMinimization<Vec>::find_origin(const int &N, RealT &lambda, const RealT ratio, const int &steps,
-                                                                         const vector<Scalar> &mus, const Scalar &sigma,
-                                                                         const array<RealT, 4> *eps2, const bool &bsort, const bool &verbose,
-                                                                         const double &tol, const bool &freeze)
-{
-  // Declare the vectors of found minima and their "errors"
-  vector<Vec> a_vecs;
-  vector<Vec> b_vecs;
-  vector<Vec> da_vecs;
-  vector<Vec> db_vecs;
-  vector<int> min_convs;
-  vector<RealT> err2s;
-
-  // Declare the helper vectors to compare the found minima vectors
-  Vec v1(nps[0] + nps[1]);
-  Vec v2(nps[0] + nps[1]);
-
-  // Declare the MinResult
-  MinResult<Vec> mini;
-
-  array<Vec, 2> ab_vec;
-  int convs{0};
-  // Iterate until the maximal initial condition
-  for (int i{0}; i < N; ++i)
-  {
-    cout << "\r" << "Initial condition: " << i + 1 << flush;
-
-    // Sample the initial conditions
-    ab_vec = sample<Vec, Scalar>(mus, sigma, nps);
-    a_vec = ab_vec[0];
-    b_vec = ab_vec[1];
-
-    // Take either 1 minimization step or multiple
-    if (steps == 1)
-    {
-      mini = minimize_origin(lambda, ratio);
-    }
-    else
-    {
-      // Change to include more steps if needed
-      DiagonalMatrix<RealT, Dynamic> W_copy{W};
-      mini = min_twostep_origin(lambda, ratio, eps2, false, freeze);
-      W = W_copy;
-    }
-
-    if (verbose)
-    {
-      cout << endl;
-      mini.display();
-    }
-
-    // Only continue if the minimization has converged
-    if (mini.conv)
-    {
-      convs += 1;
-      // Append the first found minima
-      if (a_vecs.empty())
-      {
-        a_vecs.push_back(mini.a_vec);
-        b_vecs.push_back(mini.b_vec);
-        da_vecs.push_back(mini.da_vec);
-        db_vecs.push_back(mini.db_vec);
-        min_convs.push_back(1);
-        err2s.push_back(mini.err2);
-      }
-      else
-      {
-        // For the next minima check if the new one is already included
-        size_t ab_size{a_vecs.size()};
-        bool included{false};
-        for (size_t j{0}; j < ab_size; ++j)
-        {
-          v1.head(nps[1]) = a_vecs[j];
-          v1.tail(nps[0]) = b_vecs[j];
-          v2.head(nps[1]) = mini.a_vec;
-          v2.tail(nps[0]) = mini.b_vec;
-          // Compare the minima and break the loop if they are the same
-          if (compare_min(v1, v2, tol))
-          {
-            included = true;
-            min_convs[j] += 1;
-            // Also replace the new minimum with the old one if the Chi2 value is smaller
-            if (mini.err2 < err2s[j])
-            {
-              a_vecs[j] = mini.a_vec;
-              b_vecs[j] = mini.b_vec;
-              da_vecs[j] = mini.da_vec;
-              db_vecs[j] = mini.db_vec;
-              err2s[j] = mini.err2;
-            }
-            break;
-          }
-        }
-        // If the new minimum isn't included, then append it
-        if (!included)
-        {
-          a_vecs.push_back(mini.a_vec);
-          b_vecs.push_back(mini.b_vec);
-          da_vecs.push_back(mini.da_vec);
-          db_vecs.push_back(mini.db_vec);
-          min_convs.push_back(1);
-          err2s.push_back(mini.err2);
-        }
-      }
-    }
-  }
-  cout << endl;
-
-  // Sort the vectors by err2 (low -> high) if the desired
-  if (bsort)
-  {
-    // Find the indices of the sorted array and sort the Chi2 values
-    vector<size_t> inds(err2s.size());
-    iota(inds.begin(), inds.end(), 0);
-    sort(inds.begin(), inds.end(), [&err2s](size_t i1, size_t i2)
-         { return err2s[i1] < err2s[i2]; });
+    sort(inds.begin(), inds.end(), [&lead_error](size_t i1, size_t i2)
+         { return lead_error[i1] < lead_error[i2]; });
 
     // Then sort the minima as well
     vector<Vec> sorted_a_vecs(a_vecs.size());
@@ -1440,3 +1028,5 @@ template class NMinimization<VectorXd>;
 template class NMinimization<VectorXcd>;
 template class NMinimization<VectorXld>;
 template class NMinimization<VectorXcld>;
+template class NMinimization<VectorXQ>;
+template class NMinimization<VectorXcQ>;

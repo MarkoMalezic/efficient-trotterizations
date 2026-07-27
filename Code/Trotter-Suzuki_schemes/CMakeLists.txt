@@ -24,6 +24,9 @@ file(GLOB_RECURSE SRC_FILES src/*.cpp)
 # Create the main executable
 add_executable(main ${SRC_FILES})
 
+# Link against libquadmath
+target_link_libraries(main PRIVATE quadmath)
+
 # Apply different compiler options based on the build type
 
 # Release with default O2 optimizer or O3 if USE_O3=ON

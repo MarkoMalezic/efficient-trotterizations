@@ -31,6 +31,17 @@ template <typename Vec>
 void NScheme<Vec>::step_A()
 {
   // Go down the order and take A steps, because higher orders need coefficients of smaller order
+  if (n >= 8)
+  {
+    for (int i{1}; i <= coefs.epsilons.size(); ++i)
+    {
+      coefs.epsilons_step(i, ind_A);
+      if (verbose == 2)
+      {
+        cout << "step A: epsilon" << i << ": " << coefs.epsilons[i - 1] << endl;
+      }
+    }
+  }
   if (n >= 6)
   {
     for (int i{1}; i <= coefs.deltas.size(); ++i)
@@ -75,6 +86,31 @@ template <typename Vec>
 void NScheme<Vec>::step_B()
 {
   // Go down the order and take B steps, because higher orders need coefficients of smaller order
+  if (n >= 8)
+  {
+    // Reverse the coefficients
+    reverse(coefs.epsilons.begin(), coefs.epsilons.end());
+    reverse(coefs.deltas.begin(), coefs.deltas.end());
+    reverse(coefs.gammas.begin(), coefs.gammas.end());
+    swap(coefs.alpha, coefs.beta);
+    swap(coefs.nu, coefs.sigma);
+    swap(coefs.a_eval, coefs.b_eval);
+    for (int i{1}; i <= coefs.epsilons.size(); ++i)
+    {
+      coefs.epsilons_step(i, ind_B);
+      if (verbose == 2)
+      {
+        cout << "step B: epsilon" << i << ": " << coefs.epsilons[i - 1] << endl;
+      }
+    }
+    // Un-reverse the coefficients
+    swap(coefs.a_eval, coefs.b_eval);
+    swap(coefs.nu, coefs.sigma);
+    swap(coefs.alpha, coefs.beta);
+    reverse(coefs.gammas.begin(), coefs.gammas.end());
+    reverse(coefs.deltas.begin(), coefs.deltas.end());
+    reverse(coefs.epsilons.begin(), coefs.epsilons.end());
+  }
   if (n >= 6)
   {
     // Reverse the coefficients
@@ -147,30 +183,14 @@ void NScheme<Vec>::iterate()
     // For even q, start with step_B
     if (q % 2 == 0)
     {
-      if (verbose > 0)
-      {
-        cout << "Cycle " << 2 * i + 1 << " / " << q << endl;
-      }
       step_B();
-      if (verbose > 0)
-      {
-        cout << "Cycle " << 2 * i + 2 << " / " << q << endl;
-      }
       step_A();
     }
     else
     { // For odd q, start with step_A
-      if (verbose > 0)
-      {
-        cout << "Cycle " << 2 * i + 1 << " / " << q << endl;
-      }
       step_A();
       if (i < total_steps - 1)
       { // Only call step_B if there's another step
-        if (verbose > 0)
-        {
-          cout << "Cycle " << 2 * i + 2 << " / " << q << endl;
-        }
         step_B();
       }
     }
@@ -210,15 +230,15 @@ double NScheme<VectorXd>::err2(const int &order)
   {
   case 2:
   {
-    err2 += pow(coefs.alpha, 2);
-    err2 += pow(coefs.beta, 2);
+    err2 += coefs.alpha * coefs.alpha;
+    err2 += coefs.beta * coefs.beta;
     break;
   }
   case 4:
   {
     for (size_t i{0}; i < coefs.gammas.size(); ++i)
     {
-      err2 += pow(coefs.gammas[i], 2);
+      err2 += coefs.gammas[i] * coefs.gammas[i];
     }
     break;
   }
@@ -226,7 +246,15 @@ double NScheme<VectorXd>::err2(const int &order)
   {
     for (size_t i{0}; i < coefs.deltas.size(); ++i)
     {
-      err2 += pow(coefs.deltas[i], 2);
+      err2 += coefs.deltas[i] * coefs.deltas[i];
+    }
+    break;
+  }
+  case 8:
+  {
+    for (size_t i{0}; i < coefs.epsilons.size(); ++i)
+    {
+      err2 += coefs.epsilons[i] * coefs.epsilons[i];
     }
     break;
   }
@@ -243,15 +271,15 @@ double NScheme<VectorXcd>::err2(const int &order)
   {
   case 2:
   {
-    err2 += pow(abs(coefs.alpha), 2);
-    err2 += pow(abs(coefs.beta), 2);
+    err2 += abs(coefs.alpha) * abs(coefs.alpha);
+    err2 += abs(coefs.beta) * abs(coefs.beta);
     break;
   }
   case 4:
   {
     for (size_t i{0}; i < coefs.gammas.size(); ++i)
     {
-      err2 += pow(abs(coefs.gammas[i]), 2);
+      err2 += abs(coefs.gammas[i]) * abs(coefs.gammas[i]);
     }
     break;
   }
@@ -259,7 +287,15 @@ double NScheme<VectorXcd>::err2(const int &order)
   {
     for (size_t i{0}; i < coefs.deltas.size(); ++i)
     {
-      err2 += pow(abs(coefs.deltas[i]), 2);
+      err2 += abs(coefs.deltas[i]) * abs(coefs.deltas[i]);
+    }
+    break;
+  }
+  case 8:
+  {
+    for (size_t i{0}; i < coefs.epsilons.size(); ++i)
+    {
+      err2 += abs(coefs.epsilons[i]) * abs(coefs.epsilons[i]);
     }
     break;
   }
@@ -267,7 +303,6 @@ double NScheme<VectorXcd>::err2(const int &order)
   return err2;
 }
 
-// Method, which calculates the squared error for the desired order
 // Specialization for Vec = VectorXld
 template <>
 long double NScheme<VectorXld>::err2(const int &order)
@@ -277,15 +312,15 @@ long double NScheme<VectorXld>::err2(const int &order)
   {
   case 2:
   {
-    err2 += pow(coefs.alpha, 2);
-    err2 += pow(coefs.beta, 2);
+    err2 += coefs.alpha * coefs.alpha;
+    err2 += coefs.beta * coefs.beta;
     break;
   }
   case 4:
   {
     for (size_t i{0}; i < coefs.gammas.size(); ++i)
     {
-      err2 += pow(coefs.gammas[i], 2);
+      err2 += coefs.gammas[i] * coefs.gammas[i];
     }
     break;
   }
@@ -293,7 +328,15 @@ long double NScheme<VectorXld>::err2(const int &order)
   {
     for (size_t i{0}; i < coefs.deltas.size(); ++i)
     {
-      err2 += pow(coefs.deltas[i], 2);
+      err2 += coefs.deltas[i] * coefs.deltas[i];
+    }
+    break;
+  }
+  case 8:
+  {
+    for (size_t i{0}; i < coefs.epsilons.size(); ++i)
+    {
+      err2 += coefs.epsilons[i] * coefs.epsilons[i];
     }
     break;
   }
@@ -310,15 +353,15 @@ long double NScheme<VectorXcld>::err2(const int &order)
   {
   case 2:
   {
-    err2 += pow(abs(coefs.alpha), 2);
-    err2 += pow(abs(coefs.beta), 2);
+    err2 += abs(coefs.alpha) * abs(coefs.alpha);
+    err2 += abs(coefs.beta) * abs(coefs.beta);
     break;
   }
   case 4:
   {
     for (size_t i{0}; i < coefs.gammas.size(); ++i)
     {
-      err2 += pow(abs(coefs.gammas[i]), 2);
+      err2 += abs(coefs.gammas[i]) * abs(coefs.gammas[i]);
     }
     break;
   }
@@ -326,13 +369,104 @@ long double NScheme<VectorXcld>::err2(const int &order)
   {
     for (size_t i{0}; i < coefs.deltas.size(); ++i)
     {
-      err2 += pow(abs(coefs.deltas[i]), 2);
+      err2 += abs(coefs.deltas[i]) * abs(coefs.deltas[i]);
+    }
+    break;
+  }
+  case 8:
+  {
+    for (size_t i{0}; i < coefs.epsilons.size(); ++i)
+    {
+      err2 += abs(coefs.epsilons[i]) * abs(coefs.epsilons[i]);
     }
     break;
   }
   }
   return err2;
 }
+
+// Specialization for Vec = VectorXQ
+template <>
+quad NScheme<VectorXQ>::err2(const int &order)
+{
+  quad err2{0};
+  switch (order)
+  {
+  case 2:
+  {
+    err2 += coefs.alpha * coefs.alpha;
+    err2 += coefs.beta * coefs.beta;
+    break;
+  }
+  case 4:
+  {
+    for (size_t i{0}; i < coefs.gammas.size(); ++i)
+    {
+      err2 += coefs.gammas[i] * coefs.gammas[i];
+    }
+    break;
+  }
+  case 6:
+  {
+    for (size_t i{0}; i < coefs.deltas.size(); ++i)
+    {
+      err2 += coefs.deltas[i] * coefs.deltas[i];
+    }
+    break;
+  }
+  case 8:
+  {
+    for (size_t i{0}; i < coefs.epsilons.size(); ++i)
+    {
+      err2 += coefs.epsilons[i] * coefs.epsilons[i];
+    }
+    break;
+  }
+  }
+  return err2;
+}
+
+// Specialization for Vec = VectorXcQ
+template <>
+quad NScheme<VectorXcQ>::err2(const int &order)
+{
+  quad err2{0};
+  switch (order)
+  {
+  case 2:
+  {
+    err2 += abs(coefs.alpha) * abs(coefs.alpha);
+    err2 += abs(coefs.beta) * abs(coefs.beta);
+    break;
+  }
+  case 4:
+  {
+    for (size_t i{0}; i < coefs.gammas.size(); ++i)
+    {
+      err2 += abs(coefs.gammas[i]) * abs(coefs.gammas[i]);
+    }
+    break;
+  }
+  case 6:
+  {
+    for (size_t i{0}; i < coefs.deltas.size(); ++i)
+    {
+      err2 += abs(coefs.deltas[i]) * abs(coefs.deltas[i]);
+    }
+    break;
+  }
+  case 8:
+  {
+    for (size_t i{0}; i < coefs.epsilons.size(); ++i)
+    {
+      err2 += abs(coefs.epsilons[i]) * abs(coefs.epsilons[i]);
+    }
+    break;
+  }
+  }
+  return err2;
+}
+
 
 // Method, which calculates the efficiency for the desired order
 template <typename Vec>
@@ -363,6 +497,10 @@ void NScheme<VectorXd>::display_err2()
   {
     cout << string(22, ' ') << setprecision(10) << "Err6 = " << err2(6) << endl;
   }
+  if (n >= 8)
+  {
+    cout << string(22, ' ') << setprecision(10) << "Err8 = " << err2(8) << endl;
+  }
 }
 
 // Specialization for Vec = VectorXcd
@@ -385,6 +523,10 @@ void NScheme<VectorXcd>::display_err2()
   if (n >= 6)
   {
     cout << string(22, ' ') << setprecision(10) << "Err6 = " << err2(6) << endl;
+  }
+  if (n >= 8)
+  {
+    cout << string(22, ' ') << setprecision(10) << "Err8 = " << err2(8) << endl;
   }
 }
 
@@ -409,6 +551,10 @@ void NScheme<VectorXld>::display_err2()
   {
     cout << string(22, ' ') << setprecision(10) << "Err6 = " << err2(6) << endl;
   }
+  if (n >= 8)
+  {
+    cout << string(22, ' ') << setprecision(10) << "Err8 = " << err2(8) << endl;
+  }
 }
 
 // Specialization for Vec = VectorXcld
@@ -432,6 +578,64 @@ void NScheme<VectorXcld>::display_err2()
   {
     cout << string(22, ' ') << setprecision(10) << "Err6 = " << err2(6) << endl;
   }
+  if (n >= 8)
+  {
+    cout << string(22, ' ') << setprecision(10) << "Err8 = " << err2(8) << endl;
+  }
+}
+
+// Specialization for Vec = VectorXQ
+template <>
+void NScheme<VectorXQ>::display_err2()
+{
+  if (n == 2)
+  {
+    cout << "Squared error value: ";
+  }
+  else
+  {
+    cout << "Squared error values: ";
+  }
+  cout << scientific << setprecision(10) << "Err2 = " << err2(2) << endl;
+  if (n >= 4)
+  {
+    cout << string(22, ' ') << setprecision(10) << "Err4 = " << err2(4) << endl;
+  }
+  if (n >= 6)
+  {
+    cout << string(22, ' ') << setprecision(10) << "Err6 = " << err2(6) << endl;
+  }
+  if (n >= 8)
+  {
+    cout << string(22, ' ') << setprecision(10) << "Err8 = " << err2(8) << endl;
+  }
+}
+
+// Specialization for Vec = VectorXcQ
+template <>
+void NScheme<VectorXcQ>::display_err2()
+{
+  if (n == 2)
+  {
+    cout << "Squared error value: ";
+  }
+  else
+  {
+    cout << "Squared error values: ";
+  }
+  cout << scientific << setprecision(10) << "Err2 = " << err2(2) << endl;
+  if (n >= 4)
+  {
+    cout << string(22, ' ') << setprecision(10) << "Err4 = " << err2(4) << endl;
+  }
+  if (n >= 6)
+  {
+    cout << string(22, ' ') << setprecision(10) << "Err6 = " << err2(6) << endl;
+  }
+  if (n >= 8)
+  {
+    cout << string(22, ' ') << setprecision(10) << "Err8 = " << err2(8) << endl;
+  }
 }
 
 // Method, which displays squared errors for errors of different order (if known)
@@ -442,6 +646,7 @@ void NScheme<VectorXd>::display_eff()
   double eff2 = eff(2);
   double eff4 = eff(4);
   double eff6 = eff(6);
+  double eff8 = eff(8);
 
   if (n == 2)
   {
@@ -486,25 +691,8 @@ void NScheme<VectorXd>::display_eff()
   {
     cout << string(19, ' ') << "Eff6 = " << eff6 << endl;
   }
-}
 
-// Specialization for Vec = VectorXld
-template <>
-void NScheme<VectorXld>::display_eff()
-{
-  long double eff2 = eff(2);
-  long double eff4 = eff(4);
-  long double eff6 = eff(6);
-
-  if (n == 2)
-  {
-    cout << "Efficiency value: ";
-  }
-  else
-  {
-    cout << "Efficiency values: ";
-  }
-  if (eff2 > 1e4)
+  if (eff8 > 1e4)
   {
     cout << scientific << setprecision(10);
   }
@@ -512,32 +700,9 @@ void NScheme<VectorXld>::display_eff()
   {
     cout << fixed << setprecision(10);
   }
-  cout << "Eff2 = " << eff2 << endl;
-
-  if (eff4 > 1e4)
+  if (n >= 8)
   {
-    cout << scientific << setprecision(10);
-  }
-  else
-  {
-    cout << fixed << setprecision(10);
-  }
-  if (n >= 4)
-  {
-    cout << string(19, ' ') << "Eff4 = " << eff4 << endl;
-  }
-
-  if (eff6 > 1e4)
-  {
-    cout << scientific << setprecision(10);
-  }
-  else
-  {
-    cout << fixed << setprecision(10);
-  }
-  if (n >= 6)
-  {
-    cout << string(19, ' ') << "Eff6 = " << eff6 << endl;
+    cout << string(19, ' ') << "Eff8 = " << eff8 << endl;
   }
 }
 
@@ -548,6 +713,7 @@ void NScheme<VectorXcd>::display_eff()
   double eff2 = eff(2);
   double eff4 = eff(4);
   double eff6 = eff(6);
+  double eff8 = eff(8);
 
   if (n == 2)
   {
@@ -591,6 +757,86 @@ void NScheme<VectorXcd>::display_eff()
   if (n >= 6)
   {
     cout << string(19, ' ') << "Eff6 = " << eff6 << endl;
+  }
+
+  if (eff8 > 1e4)
+  {
+    cout << scientific << setprecision(10);
+  }
+  else
+  {
+    cout << fixed << setprecision(10);
+  }
+  if (n >= 8)
+  {
+    cout << string(19, ' ') << "Eff8 = " << eff8 << endl;
+  }
+}
+
+// Specialization for Vec = VectorXld
+template <>
+void NScheme<VectorXld>::display_eff()
+{
+  long double eff2 = eff(2);
+  long double eff4 = eff(4);
+  long double eff6 = eff(6);
+  long double eff8 = eff(8);
+
+  if (n == 2)
+  {
+    cout << "Efficiency value: ";
+  }
+  else
+  {
+    cout << "Efficiency values: ";
+  }
+  if (eff2 > 1e4)
+  {
+    cout << scientific << setprecision(10);
+  }
+  else
+  {
+    cout << fixed << setprecision(10);
+  }
+  cout << "Eff2 = " << eff2 << endl;
+
+  if (eff4 > 1e4)
+  {
+    cout << scientific << setprecision(10);
+  }
+  else
+  {
+    cout << fixed << setprecision(10);
+  }
+  if (n >= 4)
+  {
+    cout << string(19, ' ') << "Eff4 = " << eff4 << endl;
+  }
+
+  if (eff6 > 1e4)
+  {
+    cout << scientific << setprecision(10);
+  }
+  else
+  {
+    cout << fixed << setprecision(10);
+  }
+  if (n >= 6)
+  {
+    cout << string(19, ' ') << "Eff6 = " << eff6 << endl;
+  }
+  
+  if (eff8 > 1e4)
+  {
+    cout << scientific << setprecision(10);
+  }
+  else
+  {
+    cout << fixed << setprecision(10);
+  }
+  if (n >= 8)
+  {
+    cout << string(19, ' ') << "Eff8 = " << eff8 << endl;
   }
 }
 
@@ -601,6 +847,7 @@ void NScheme<VectorXcld>::display_eff()
   long double eff2 = eff(2);
   long double eff4 = eff(4);
   long double eff6 = eff(6);
+  long double eff8 = eff(8);
 
   if (n == 2)
   {
@@ -645,10 +892,160 @@ void NScheme<VectorXcld>::display_eff()
   {
     cout << string(19, ' ') << "Eff6 = " << eff6 << endl;
   }
+
+  if (eff8 > 1e4)
+  {
+    cout << scientific << setprecision(10);
+  }
+  else
+  {
+    cout << fixed << setprecision(10);
+  }
+  if (n >= 8)
+  {
+    cout << string(19, ' ') << "Eff8 = " << eff8 << endl;
+  }
 }
+
+// Specialization for Vec = VectorXQ
+template <>
+void NScheme<VectorXQ>::display_eff()
+{
+  quad eff2 = eff(2);
+  quad eff4 = eff(4);
+  quad eff6 = eff(6);
+  quad eff8 = eff(8);
+
+  if (n == 2)
+  {
+    cout << "Efficiency value: ";
+  }
+  else
+  {
+    cout << "Efficiency values: ";
+  }
+  if (eff2 > 1e4)
+  {
+    cout << scientific << setprecision(10);
+  }
+  else
+  {
+    cout << fixed << setprecision(10);
+  }
+  cout << "Eff2 = " << eff2 << endl;
+
+  if (eff4 > 1e4)
+  {
+    cout << scientific << setprecision(10);
+  }
+  else
+  {
+    cout << fixed << setprecision(10);
+  }
+  if (n >= 4)
+  {
+    cout << string(19, ' ') << "Eff4 = " << eff4 << endl;
+  }
+
+  if (eff6 > 1e4)
+  {
+    cout << scientific << setprecision(10);
+  }
+  else
+  {
+    cout << fixed << setprecision(10);
+  }
+  if (n >= 6)
+  {
+    cout << string(19, ' ') << "Eff6 = " << eff6 << endl;
+  }
+
+  if (eff8 > 1e4)
+  {
+    cout << scientific << setprecision(10);
+  }
+  else
+  {
+    cout << fixed << setprecision(10);
+  }
+  if (n >= 8)
+  {
+    cout << string(19, ' ') << "Eff8 = " << eff8 << endl;
+  }
+}
+
+// Specialization for Vec = VectorXcQ
+template <>
+void NScheme<VectorXcQ>::display_eff()
+{
+  quad eff2 = eff(2);
+  quad eff4 = eff(4);
+  quad eff6 = eff(6);
+  quad eff8 = eff(8);
+
+  if (n == 2)
+  {
+    cout << "Efficiency value: ";
+  }
+  else
+  {
+    cout << "Efficiency values: ";
+  }
+  if (eff2 > 1e4)
+  {
+    cout << scientific << setprecision(10);
+  }
+  else
+  {
+    cout << fixed << setprecision(10);
+  }
+  cout << "Eff2 = " << eff2 << endl;
+
+  if (eff4 > 1e4)
+  {
+    cout << scientific << setprecision(10);
+  }
+  else
+  {
+    cout << fixed << setprecision(10);
+  }
+  if (n >= 4)
+  {
+    cout << string(19, ' ') << "Eff4 = " << eff4 << endl;
+  }
+
+  if (eff6 > 1e4)
+  {
+    cout << scientific << setprecision(10);
+  }
+  else
+  {
+    cout << fixed << setprecision(10);
+  }
+  if (n >= 6)
+  {
+    cout << string(19, ' ') << "Eff6 = " << eff6 << endl;
+  }
+
+  if (eff8 > 1e4)
+  {
+    cout << scientific << setprecision(10);
+  }
+  else
+  {
+    cout << fixed << setprecision(10);
+  }
+  if (n >= 8)
+  {
+    cout << string(19, ' ') << "Eff8 = " << eff8 << endl;
+  }
+}
+
 
 // Explicit instantiation for the template class
 template class NScheme<VectorXd>;
 template class NScheme<VectorXcd>;
 template class NScheme<VectorXld>;
 template class NScheme<VectorXcld>;
+template class NScheme<VectorXQ>;
+template class NScheme<VectorXcQ>;

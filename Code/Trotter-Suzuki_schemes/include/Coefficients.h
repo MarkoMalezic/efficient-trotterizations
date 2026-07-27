@@ -81,6 +81,9 @@ public:
 
   // Method to update the delta coefficients
   void *deltas_step(const int &delta_ind);
+
+  // Method to update the epsilon coefficients
+  void *epsilons_step(const int &epsilon_ind);
 };
 
 #endif // _COEFFICIENTS_H_

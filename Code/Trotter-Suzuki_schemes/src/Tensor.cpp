@@ -517,7 +517,7 @@ void Tensor<RealT>::display_poly()
         {
           cout << ((i == 0 && j == 0) ? "-" : " - ");
         }
-        cout << scientific << setprecision(5) << abs(T[i][j]);
+        cout << scientific << setprecision(8) << abs(T[i][j]);
         cout << poly_terms(j, i, metadata)
              << ((i < metadata.dims[0] && j < metadata.dims[1]) ? "" : ")");
       }

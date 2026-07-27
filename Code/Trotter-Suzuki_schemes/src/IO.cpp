@@ -82,6 +82,32 @@ complex<long double> parse_value(const string &str)
   return complex<long double>(real, imag);
 }
 
+// Specialization for quad
+template <>
+quad parse_value(const string &str)
+{
+  istringstream iss(str);
+  quad value;
+  iss >> value;
+  return value;
+}
+
+// Specialization for complex<quad>
+template <>
+complex<quad> parse_value(const string &str)
+{
+  istringstream iss(str);
+  quad real, imag;
+  char sign, i;
+  iss >> real >> sign >> i >> imag;
+  ;
+  if (sign == '-')
+  {
+    imag = -imag;
+  }
+  return complex<quad>(real, imag);
+}
+
 // Helper function to parse a list to extract vectors and arrays
 // Specialization for array<double, 2>
 template <>
@@ -121,6 +147,25 @@ array<long double, 2> parse_list(const string &str)
   return list;
 }
 
+// Specialization for array<quad, 2>
+template <>
+array<quad, 2> parse_list(const string &str)
+{
+  istringstream iss(str);
+  string token;
+
+  array<quad, 2> list;
+  for (int i = 0; i < 2; ++i)
+  {
+    if (!getline(iss, token, ','))
+    {
+      throw runtime_error("Insufficient elements in list to parse array<quad, 2>");
+    }
+    list[i] = stold(trim(token));
+  }
+  return list;
+}
+
 // Specialization for array<double, 4>
 template <>
 array<double, 4> parse_list(const string &str)
@@ -153,6 +198,25 @@ array<long double, 4> parse_list(const string &str)
     if (!getline(iss, token, ','))
     {
       throw runtime_error("Insufficient elements in list to parse array<long double, 4>");
+    }
+    list[i] = stold(trim(token));
+  }
+  return list;
+}
+
+// Specialization for array<quad, 4>
+template <>
+array<quad, 4> parse_list(const string &str)
+{
+  istringstream iss(str);
+  string token;
+
+  array<quad, 4> list;
+  for (int i = 0; i < 4; ++i)
+  {
+    if (!getline(iss, token, ','))
+    {
+      throw runtime_error("Insufficient elements in list to parse array<quad, 4>");
     }
     list[i] = stold(trim(token));
   }
@@ -215,6 +279,37 @@ vector<complex<long double>> parse_list(const string &str)
   while (getline(iss, token, ','))
   {
     list.push_back(parse_value<complex<long double>>(trim(token)));
+  }
+  return list;
+}
+
+// Specialization for vector<quad>
+template <>
+vector<quad> parse_list(const string &str)
+{
+  istringstream iss(str);
+  string token;
+
+  vector<quad> list;
+  while (getline(iss, token, ','))
+  {
+    quad value(trim(token));
+    list.push_back(value);
+  }
+  return list;
+}
+
+// Specialization for vector<complex<quad>>
+template <>
+vector<complex<quad>> parse_list(const string &str)
+{
+  istringstream iss(str);
+  string token;
+
+  vector<complex<quad>> list;
+  while (getline(iss, token, ','))
+  {
+    list.push_back(parse_value<complex<quad>>(trim(token)));
   }
   return list;
 }
@@ -283,6 +378,38 @@ VectorXcld parse_list(const string &str)
   return list;
 }
 
+// Specialization for VectorXQ
+template <>
+VectorXQ parse_list(const string &str)
+{
+  // Use a temporary list to extract the values
+  vector<quad> temp_list = parse_list<vector<quad>>(str);
+
+  // Fill the VectorXd with the extracted values
+  VectorXQ list(temp_list.size());
+  for (size_t i = 0; i < temp_list.size(); ++i)
+  {
+    list(i) = temp_list[i];
+  }
+  return list;
+}
+
+// Specialization for VectorXcQ
+template <>
+VectorXcQ parse_list(const string &str)
+{
+  // Use a temporary list to extract the values
+  vector<complex<quad>> temp_list = parse_list<vector<complex<quad>>>(str);
+
+  // Fill the VectorXd with the extracted values
+  VectorXcQ list(temp_list.size());
+  for (size_t i = 0; i < temp_list.size(); ++i)
+  {
+    list(i) = temp_list[i];
+  }
+  return list;
+}
+
 
 // Helper functions for printing in the minimization routines
 template <typename RealT>
@@ -292,11 +419,11 @@ void print_num_min(ostream &stream, const int &order, const int &no_cycles,
 {
   stream << "Minimize (" << steps << " step) results" << endl;
   stream << "Order: " << order << ", No. cycles: " << no_cycles << endl;
-  stream << "Convergence criteria: - 1. step: " << scientific << setprecision(0) << "eps1 = " << eps1[0] << ", eps2 = " << eps1[1] << ", eps3 = " << eps1[2] << ", eps4 = " << eps1[3] << endl;
+  stream << "Convergence criteria: - 1. step: " << scientific << setprecision(1) << "eps1 = " << eps1[0] << ", eps2 = " << eps1[1] << ", eps3 = " << eps1[2] << ", eps4 = " << eps1[3] << endl;
 
   if (steps == 2)
   {
-    stream << string(22, ' ') << "- 2. step: " << scientific << setprecision(0) << "eps2 = " << eps2[0] << ", eps2 = " << eps2[1] << ", eps3 = " << eps2[2] << ", eps4 = " << eps2[3] << endl;
+    stream << string(22, ' ') << "- 2. step: " << scientific << setprecision(1) << "eps2 = " << eps2[0] << ", eps2 = " << eps2[1] << ", eps3 = " << eps2[2] << ", eps4 = " << eps2[3] << endl;
   }
 
   stream << "Weigths per order: " << scientific << setprecision(1) << "w2 = " << wi[0];
@@ -308,6 +435,10 @@ void print_num_min(ostream &stream, const int &order, const int &no_cycles,
   if (order >= 6)
   {
     stream << ", w6 = " << wi[2];
+  }
+  if (order >= 8)
+  {
+    stream << ", w8 = " << wi[3];
   }
 
   stream << endl;
@@ -341,6 +472,10 @@ void print_num_min_origin(ostream &stream, const int &order, const int &no_cycle
   if (order >= 6)
   {
     stream << ", w6 = " << wi[2];
+  }
+  if (order >= 8)
+  {
+    stream << ", w8 = " << wi[3];
   }
 
   stream << endl;
@@ -383,6 +518,7 @@ void print_sym_min(ostream &stream, const int &order, const int &no_cycles,
 }
 
 
+// Specialization for NScheme
 // Specialization for VectorXd
 template <>
 void print_num_min1(ostream &stream, NScheme<VectorXd> &scheme, const VectorXd &a_init, const VectorXd &b_init)
@@ -462,6 +598,17 @@ void print_num_min1(ostream &stream, NScheme<VectorXd> &scheme, const VectorXd &
     else
     {
       stream << "|   6   | " << scheme.err2(6) << " | " << scheme.eff(6) << " |" << endl;
+    }
+  }
+  if (scheme.n >= 8)
+  {
+    if (scheme.eff(8) == INFINITY)
+    {
+      stream << "|   8   |          0.0           |        Infinity        |" << endl;
+    }
+    else
+    {
+      stream << "|   8   | " << scheme.err2(8) << " | " << scheme.eff(8) << " |" << endl;
     }
   }
   stream << string(59, '-') << endl;
@@ -584,6 +731,17 @@ void print_num_min1(ostream &stream, NScheme<VectorXcd> &scheme, const VectorXcd
       stream << "|   6   | " << scheme.err2(6) << " | " << scheme.eff(6) << " |" << endl;
     }
   }
+  if (scheme.n >= 8)
+  {
+    if (scheme.eff(8) == INFINITY)
+    {
+      stream << "|   8   |          0.0           |        Infinity        |" << endl;
+    }
+    else
+    {
+      stream << "|   8   | " << scheme.err2(8) << " | " << scheme.eff(8) << " |" << endl;
+    }
+  }
   stream << string(59, '-') << endl;
 }
 
@@ -666,6 +824,17 @@ void print_num_min1(ostream &stream, NScheme<VectorXld> &scheme, const VectorXld
     else
     {
       stream << "|   6   | " << scheme.err2(6) << " | " << scheme.eff(6) << " |" << endl;
+    }
+  }
+  if (scheme.n >= 8)
+  {
+    if (scheme.eff(8) == INFINITY)
+    {
+      stream << "|   8   |            0.0             |          Infinity          |" << endl;
+    }
+    else
+    {
+      stream << "|   8   | " << scheme.err2(8) << " | " << scheme.eff(8) << " |" << endl;
     }
   }
   stream << string(67, '-') << endl;
@@ -788,10 +957,248 @@ void print_num_min1(ostream &stream, NScheme<VectorXcld> &scheme, const VectorXc
       stream << "|   6   | " << scheme.err2(6) << " | " << scheme.eff(6) << " |" << endl;
     }
   }
+  if (scheme.n >= 8)
+  {
+    if (scheme.eff(8) == INFINITY)
+    {
+      stream << "|   8   |            0.0             |          Infinity          |" << endl;
+    }
+    else
+    {
+      stream << "|   8   | " << scheme.err2(8) << " | " << scheme.eff(8) << " |" << endl;
+    }
+  }
   stream << string(67, '-') << endl;
 }
 
+// Specialization for VectorXQ
+template <>
+void print_num_min1(ostream &stream, NScheme<VectorXQ> &scheme, const VectorXQ &a_init, const VectorXQ &b_init)
+{
+  stream << string(99, '-') << endl;
+  stream << fixed << setprecision(36);
+  stream << "Initial vector a: ";
+  for (int i = 0; i < a_init.size(); ++i)
+  {
+    stream << a_init[i];
+    if (i != a_init.size() - 1)
+    {
+      stream << ", ";
+    }
+  }
+  stream << endl;
+  stream << "Initial vector b: ";
+  for (int i = 0; i < b_init.size(); ++i)
+  {
+    stream << b_init[i];
+    if (i != b_init.size() - 1)
+    {
+      stream << ", ";
+    }
+  }
+  stream << endl;
+  stream << string(99, '-') << endl;
+  stream << "Final vector a: ";
+  for (int i = 0; i < scheme.a_eval.size(); ++i)
+  {
+    stream << scheme.a_eval[i];
+    if (i != scheme.a_eval.size() - 1)
+    {
+      stream << ", ";
+    }
+  }
+  stream << endl;
+  stream << "Final vector b: ";
+  for (int i = 0; i < scheme.b_eval.size(); ++i)
+  {
+    stream << scheme.b_eval[i];
+    if (i != scheme.b_eval.size() - 1)
+    {
+      stream << ", ";
+    }
+  }
+  stream << endl;
+  stream << string(99, '-') << endl;
+  stream << scientific << setprecision(36);
+  stream << "| Order |                  Error^2                   |                 Efficiency                 |" << endl;
+  stream << string(99, '-') << endl;
+  if (scheme.eff(2) == INFINITY)
+  {
+    stream << "|   2   |                    0.0                     |                  Infinity                  |" << endl;
+  }
+  else
+  {
+    stream << "|   2   | " << scheme.err2(2) << " | " << scheme.eff(2) << " |" << endl;
+  }
+  if (scheme.n >= 4)
+  {
+    if (scheme.eff(4) == INFINITY)
+    {
+      stream << "|   4   |                    0.0                     |                  Infinity                  |" << endl;
+    }
+    else
+    {
+      stream << "|   4   | " << scheme.err2(4) << " | " << scheme.eff(4) << " |" << endl;
+    }
+  }
+  if (scheme.n >= 6)
+  {
+    if (scheme.eff(6) == INFINITY)
+    {
+      stream << "|   6   |                    0.0                     |                  Infinity                  |" << endl;
+    }
+    else
+    {
+      stream << "|   6   | " << scheme.err2(6) << " | " << scheme.eff(6) << " |" << endl;
+    }
+  }
+  if (scheme.n >= 8)
+  {
+    if (scheme.eff(8) == INFINITY)
+    {
+      stream << "|   8   |                    0.0                     |                  Infinity                  |" << endl;
+    }
+    else
+    {
+      stream << "|   8   | " << scheme.err2(8) << " | " << scheme.eff(8) << " |" << endl;
+    }
+  }
+  stream << string(99, '-') << endl;
+}
 
+// Specialization for VectorXcQ
+template <>
+void print_num_min1(ostream &stream, NScheme<VectorXcQ> &scheme, const VectorXcQ &a_init, const VectorXcQ &b_init)
+{
+  stream << string(99, '-') << endl;
+  stream << fixed << setprecision(36);
+  stream << "Initial vector a: ";
+  for (int i = 0; i < a_init.size(); ++i)
+  {
+    stream << a_init[i].real();
+    if (a_init[i].imag() > 0)
+    {
+      stream << " + i";
+    }
+    else
+    {
+      stream << " - i";
+    }
+    stream << abs(a_init[i].imag());
+    if (i != a_init.size() - 1)
+    {
+      stream << ", ";
+    }
+  }
+  stream << endl;
+  stream << "Initial vector b: ";
+  for (int i = 0; i < b_init.size(); ++i)
+  {
+    stream << b_init[i].real();
+    if (b_init[i].imag() > 0)
+    {
+      stream << " + i";
+    }
+    else
+    {
+      stream << " - i";
+    }
+    stream << abs(b_init[i].imag());
+    if (i != b_init.size() - 1)
+    {
+      stream << ", ";
+    }
+  }
+  stream << endl;
+  stream << string(99, '-') << endl;
+  stream << "Final vector a: ";
+  for (int i = 0; i < scheme.a_eval.size(); ++i)
+  {
+    stream << scheme.a_eval[i].real();
+    if (scheme.a_eval[i].imag() > 0)
+    {
+      stream << " + i";
+    }
+    else
+    {
+      stream << " - i";
+    }
+    stream << abs(scheme.a_eval[i].imag());
+    if (i != scheme.a_eval.size() - 1)
+    {
+      stream << ", ";
+    }
+  }
+  stream << endl;
+  stream << "Final vector b: ";
+  for (int i = 0; i < scheme.b_eval.size(); ++i)
+  {
+    stream << scheme.b_eval[i].real();
+    if (scheme.b_eval[i].imag() > 0)
+    {
+      stream << " + i";
+    }
+    else
+    {
+      stream << " - i";
+    }
+    stream << abs(scheme.b_eval[i].imag());
+    if (i != scheme.b_eval.size() - 1)
+    {
+      stream << ", ";
+    }
+  }
+  stream << endl;
+  stream << string(99, '-') << endl;
+  stream << scientific << setprecision(36);
+  stream << "| Order |                  Error^2                   |                 Efficiency                 |" << endl;
+  stream << string(99, '-') << endl;
+  if (scheme.eff(2) == INFINITY)
+  {
+    stream << "|   2   |                    0.0                     |                  Infinity                  |" << endl;
+  }
+  else
+  {
+    stream << "|   2   | " << scheme.err2(2) << " | " << scheme.eff(2) << " |" << endl;
+  }
+  if (scheme.n >= 4)
+  {
+    if (scheme.eff(4) == INFINITY)
+    {
+      stream << "|   4   |                    0.0                     |                  Infinity                  |" << endl;
+    }
+    else
+    {
+      stream << "|   4   | " << scheme.err2(4) << " | " << scheme.eff(4) << " |" << endl;
+    }
+  }
+  if (scheme.n >= 6)
+  {
+    if (scheme.eff(6) == INFINITY)
+    {
+      stream << "|   6   |                    0.0                     |                  Infinity                  |" << endl;
+    }
+    else
+    {
+      stream << "|   6   | " << scheme.err2(6) << " | " << scheme.eff(6) << " |" << endl;
+    }
+  }
+  if (scheme.n >= 8)
+  {
+    if (scheme.eff(8) == INFINITY)
+    {
+      stream << "|   8   |                    0.0                     |                  Infinity                  |" << endl;
+    }
+    else
+    {
+      stream << "|   8   | " << scheme.err2(8) << " | " << scheme.eff(8) << " |" << endl;
+    }
+  }
+  stream << string(99, '-') << endl;
+}
+
+
+// Specialization for Scheme
 // Specialization for VectorXd
 template <>
 void print_sym_min1(ostream &stream, Scheme<double> &scheme,
@@ -1210,7 +1617,7 @@ template <typename Scalar, typename RealT>
 void print_num_find(ostream &stream, const int &order, const int &no_cycles,
                     const array<RealT, 4> &eps1, const array<RealT, 4> &eps2, const vector<RealT> &wi,
                     const RealT step, const int n_iter, const array<RealT, 2> &Ls, const RealT lambda, const int N, const int steps,
-                    Scalar mu, const vector<Scalar> &mus, Scalar sigma, int sum_convs, const RealT tol)
+                    Scalar mu, Scalar sigma, int sum_convs, const RealT tol)
 {
   stream << "Minima finder results" << endl;
   stream << "Order: " << order << ", No. cycles: " << no_cycles << endl;
@@ -1230,6 +1637,10 @@ void print_num_find(ostream &stream, const int &order, const int &no_cycles,
   if (order >= 6)
   {
     stream << ", w6 = " << wi[2];
+  }
+  if (order >= 8)
+  {
+    stream << ", w8 = " << wi[3];
   }
 
   stream << endl;
@@ -1241,93 +1652,34 @@ void print_num_find(ostream &stream, const int &order, const int &no_cycles,
   stream << "Comparison tolerance: " << scientific << setprecision(2) << tol << endl;
 
   stream << fixed << setprecision(4);
-  if (mus.empty())
+  if (is_same_v<Scalar, double> || is_same_v<Scalar, long double>)
   {
-    if (is_same_v<Scalar, double> || is_same_v<Scalar, long double>)
-    {
-      stream << "Normal distribution: - mu = " << mu << endl;
-      stream << string(21, ' ') << "- sigma = " << sigma << endl;
-    }
-    else if (is_same_v<Scalar, complex<double>> || is_same_v<Scalar, complex<long double>>)
-    {
-      stream << "Normal distribution: - mu = " << real(mu);
-      if (imag(mu) > 0)
-      {
-        stream << " + i";
-      }
-      else
-      {
-        stream << " - i";
-      }
-      stream << abs(imag(mu)) << endl;
-
-      stream << string(21, ' ') << "- sigma = " << real(sigma);
-      if (imag(sigma) > 0)
-      {
-        stream << " + i";
-      }
-      else
-      {
-        stream << " - i";
-      }
-      stream << abs(imag(sigma)) << endl;
-    }
+    stream << "Normal distribution: - mu = " << mu << endl;
+    stream << string(21, ' ') << "- sigma = " << sigma << endl;
   }
-  else
+  else if (is_same_v<Scalar, complex<double>> || is_same_v<Scalar, complex<long double>>)
   {
-    stream << "Normal distribution: - mus = ";
-    if (is_same_v<Scalar, double> || is_same_v<Scalar, long double>)
+    stream << "Normal distribution: - mu = " << real(mu);
+    if (imag(mu) > 0)
     {
-      for (size_t i{0}; i < mus.size(); ++i)
-      {
-        stream << mus[i];
-        if (i != mus.size())
-        {
-          stream << ", ";
-        }
-        else
-        {
-          stream << endl;
-        }
-      }
-      stream << string(23, ' ') << "- sigma = " << sigma << endl;
+      stream << " + i";
     }
-    else if (is_same_v<Scalar, complex<double>> || is_same_v<Scalar, complex<long double>>)
+    else
     {
-      for (size_t i{0}; i < mus.size(); ++i)
-      {
-        stream << real(mus[i]);
-        if (imag(mus[i]) > 0)
-        {
-          stream << " + i";
-        }
-        else
-        {
-          stream << " - i";
-        }
-        stream << abs(imag(mus[i]));
-
-        if (i != mus.size())
-        {
-          stream << ", ";
-        }
-        else
-        {
-          stream << endl;
-        }
-      }
-
-      stream << string(23, ' ') << "- sigma = " << real(sigma);
-      if (imag(sigma) > 0)
-      {
-        stream << " + i";
-      }
-      else
-      {
-        stream << " - i";
-      }
-      stream << abs(imag(sigma)) << endl;
+      stream << " - i";
     }
+    stream << abs(imag(mu)) << endl;
+
+    stream << string(21, ' ') << "- sigma = " << real(sigma);
+    if (imag(sigma) > 0)
+    {
+      stream << " + i";
+    }
+    else
+    {
+      stream << " - i";
+    }
+    stream << abs(imag(sigma)) << endl;
   }
 
   stream << string(38, '-') << endl;
@@ -1335,27 +1687,39 @@ void print_num_find(ostream &stream, const int &order, const int &no_cycles,
 
   if constexpr (is_same_v<Scalar, double>)
   {
-    stream << string(95, '-') << endl;
-    stream << "| i   ||  Ratio  |   Eff2   |   Eff4   |   Eff6   |          a          |          b          |\n";
-    stream << string(95, '=') << endl;
+    stream << string(106, '-') << endl;
+    stream << "| i   ||  Ratio  |   Eff2   |   Eff4   |   Eff6   |   Eff8   |          a          |          b          |\n";
+    stream << string(106, '=') << endl;
   }
   else if constexpr (is_same_v<Scalar, complex<double>>)
   {
-    stream << string(139, '-') << endl;
-    stream << "| i   ||  Ratio  |   Eff2   |   Eff4   |   Eff6   |                     a                     |                     b                     |\n";
-    stream << string(139, '=') << endl;
+    stream << string(150, '-') << endl;
+    stream << "| i   ||  Ratio  |   Eff2   |   Eff4   |   Eff6   |   Eff8   |                     a                     |                     b                     |\n";
+    stream << string(150, '=') << endl;
   }
   else if constexpr (is_same_v<Scalar, long double>)
   {
-    stream << string(103, '-') << endl;
-    stream << "| i   ||  Ratio  |   Eff2   |   Eff4   |   Eff6   |            a            |            b            |\n";
-    stream << string(103, '=') << endl;
+    stream << string(114, '-') << endl;
+    stream << "| i   ||  Ratio  |   Eff2   |   Eff4   |   Eff6   |   Eff8   |            a            |            b            |\n";
+    stream << string(114, '=') << endl;
   }
   else if constexpr (is_same_v<Scalar, complex<long double>>)
   {
-    stream << string(155, '-') << endl;
-    stream << "| i   ||  Ratio  |   Eff2   |   Eff4   |   Eff6   |                         a                         |                         b                         |\n";
-    stream << string(155, '=') << endl;
+    stream << string(166, '-') << endl;
+    stream << "| i   ||  Ratio  |   Eff2   |   Eff4   |   Eff6   |   Eff8   |                         a                         |                         b                         |\n";
+    stream << string(166, '=') << endl;
+  }
+  else if constexpr (is_same_v<Scalar, quad>)
+  {
+    stream << string(146, '-') << endl;
+    stream << "| i   ||  Ratio  |   Eff2   |   Eff4   |   Eff6   |   Eff8   |                    a                    |                    b                    |\n";
+    stream << string(146, '=') << endl;
+  }
+  else if constexpr (is_same_v<Scalar, complex<quad>>)
+  {
+    stream << string(230, '-') << endl;
+    stream << "| i   ||  Ratio  |   Eff2   |   Eff4   |   Eff6   |   Eff8   |                                         a                                         |                                         b                                         |\n";
+    stream << string(230, '=') << endl;
   }
 }
 
@@ -1365,7 +1729,7 @@ template <typename Scalar, typename RealT>
 void print_num_find_origin(ostream &stream, const int &order, const int &no_cycles,
                            const array<RealT, 4> &eps1, const array<RealT, 4> &eps2, const vector<RealT> &wi,
                            const RealT step, const int n_iter, const array<RealT, 2> &Ls, const RealT lambda, const RealT &ratio, const int N, const int steps,
-                           Scalar mu, const vector<Scalar> &mus, Scalar sigma, int sum_convs, const RealT tol)
+                           Scalar mu, Scalar sigma, int sum_convs, const RealT tol)
 {
   stream << "Minima finder results" << endl;
   stream << "Order: " << order << ", No. cycles: " << no_cycles << endl;
@@ -1385,6 +1749,10 @@ void print_num_find_origin(ostream &stream, const int &order, const int &no_cycl
   if (order >= 6)
   {
     stream << ", w6 = " << wi[2];
+  }
+  if (order >= 8)
+  {
+    stream << ", w8 = " << wi[3];
   }
 
   stream << endl;
@@ -1397,93 +1765,34 @@ void print_num_find_origin(ostream &stream, const int &order, const int &no_cycl
   stream << "Comparison tolerance: " << scientific << setprecision(2) << tol << endl;
 
   stream << fixed << setprecision(4);
-  if (mus.empty())
+  if (is_same_v<Scalar, double> || is_same_v<Scalar, long double>)
   {
-    if (is_same_v<Scalar, double> || is_same_v<Scalar, long double>)
-    {
-      stream << "Normal distribution: - mu = " << mu << endl;
-      stream << string(21, ' ') << "- sigma = " << sigma << endl;
-    }
-    else if (is_same_v<Scalar, complex<double>> || is_same_v<Scalar, complex<long double>>)
-    {
-      stream << "Normal distribution: - mu = " << real(mu);
-      if (imag(mu) > 0)
-      {
-        stream << " + i";
-      }
-      else
-      {
-        stream << " - i";
-      }
-      stream << abs(imag(mu)) << endl;
-
-      stream << string(21, ' ') << "- sigma = " << real(sigma);
-      if (imag(sigma) > 0)
-      {
-        stream << " + i";
-      }
-      else
-      {
-        stream << " - i";
-      }
-      stream << abs(imag(sigma)) << endl;
-    }
+    stream << "Normal distribution: - mu = " << mu << endl;
+    stream << string(21, ' ') << "- sigma = " << sigma << endl;
   }
-  else
+  else if (is_same_v<Scalar, complex<double>> || is_same_v<Scalar, complex<long double>>)
   {
-    stream << "Normal distribution: - mus = ";
-    if (is_same_v<Scalar, double> || is_same_v<Scalar, long double>)
+    stream << "Normal distribution: - mu = " << real(mu);
+    if (imag(mu) > 0)
     {
-      for (size_t i{0}; i < mus.size(); ++i)
-      {
-        stream << mus[i];
-        if (i != mus.size())
-        {
-          stream << ", ";
-        }
-        else
-        {
-          stream << endl;
-        }
-      }
-      stream << string(23, ' ') << "- sigma = " << sigma << endl;
+      stream << " + i";
     }
-    else if (is_same_v<Scalar, complex<double>> || is_same_v<Scalar, complex<long double>>)
+    else
     {
-      for (size_t i{0}; i < mus.size(); ++i)
-      {
-        stream << real(mus[i]);
-        if (imag(mus[i]) > 0)
-        {
-          stream << " + i";
-        }
-        else
-        {
-          stream << " - i";
-        }
-        stream << abs(imag(mus[i]));
-
-        if (i != mus.size())
-        {
-          stream << ", ";
-        }
-        else
-        {
-          stream << endl;
-        }
-      }
-
-      stream << string(23, ' ') << "- sigma = " << real(sigma);
-      if (imag(sigma) > 0)
-      {
-        stream << " + i";
-      }
-      else
-      {
-        stream << " - i";
-      }
-      stream << abs(imag(sigma)) << endl;
+      stream << " - i";
     }
+    stream << abs(imag(mu)) << endl;
+
+    stream << string(21, ' ') << "- sigma = " << real(sigma);
+    if (imag(sigma) > 0)
+    {
+      stream << " + i";
+    }
+    else
+    {
+      stream << " - i";
+    }
+    stream << abs(imag(sigma)) << endl;
   }
 
   stream << string(38, '-') << endl;
@@ -1491,27 +1800,27 @@ void print_num_find_origin(ostream &stream, const int &order, const int &no_cycl
 
   if constexpr (is_same_v<Scalar, double>)
   {
-    stream << string(95, '-') << endl;
-    stream << "| i   ||  Ratio  |   Eff2   |   Eff4   |   Eff6   |          a          |          b          |\n";
-    stream << string(95, '=') << endl;
+    stream << string(106, '-') << endl;
+    stream << "| i   ||  Ratio  |   Eff2   |   Eff4   |   Eff6   |   Eff8   |          a          |          b          |\n";
+    stream << string(106, '=') << endl;
   }
   else if constexpr (is_same_v<Scalar, complex<double>>)
   {
-    stream << string(139, '-') << endl;
-    stream << "| i   ||  Ratio  |   Eff2   |   Eff4   |   Eff6   |                     a                     |                     b                     |\n";
-    stream << string(139, '=') << endl;
+    stream << string(150, '-') << endl;
+    stream << "| i   ||  Ratio  |   Eff2   |   Eff4   |   Eff6   |   Eff8   |                     a                     |                     b                     |\n";
+    stream << string(150, '=') << endl;
   }
   else if constexpr (is_same_v<Scalar, long double>)
   {
-    stream << string(103, '-') << endl;
-    stream << "| i   ||  Ratio  |   Eff2   |   Eff4   |   Eff6   |            a            |            b            |\n";
-    stream << string(103, '=') << endl;
+    stream << string(114, '-') << endl;
+    stream << "| i   ||  Ratio  |   Eff2   |   Eff4   |   Eff6   |   Eff8   |            a            |            b            |\n";
+    stream << string(114, '=') << endl;
   }
   else if constexpr (is_same_v<Scalar, complex<long double>>)
   {
-    stream << string(155, '-') << endl;
-    stream << "| i   ||  Ratio  |   Eff2   |   Eff4   |   Eff6   |                         a                         |                         b                         |\n";
-    stream << string(155, '=') << endl;
+    stream << string(166, '-') << endl;
+    stream << "| i   ||  Ratio  |   Eff2   |   Eff4   |   Eff6   |   Eff8   |                         a                         |                         b                         |\n";
+    stream << string(166, '=') << endl;
   }
 }
 
@@ -1520,7 +1829,7 @@ template <typename Scalar, typename RealT>
 void print_sym_find(ostream &stream, const int &order, const int &no_cycles,
                     const array<RealT, 4> &eps1, const array<RealT, 4> &eps2, const vector<RealT> &wi,
                     const int n_iter, const array<RealT, 2> &Ls, const RealT lambda, const int N, const int steps,
-                    Scalar mu, const vector<Scalar> &mus, Scalar sigma, int sum_convs, const RealT tol)
+                    Scalar mu, Scalar sigma, int sum_convs, const RealT tol)
 {
   stream << "Minima finder results" << endl;
   stream << "Order: " << order << ", No. cycles: " << no_cycles << endl;
@@ -1550,93 +1859,34 @@ void print_sym_find(ostream &stream, const int &order, const int &no_cycles,
   stream << "Comparison tolerance: " << scientific << setprecision(2) << tol << endl;
 
   stream << fixed << setprecision(4);
-  if (mus.empty())
+  if (is_same_v<Scalar, double> || is_same_v<Scalar, long double>)
   {
-    if (is_same_v<Scalar, double> || is_same_v<Scalar, long double>)
-    {
-      stream << "Normal distribution: - mu = " << mu << endl;
-      stream << string(21, ' ') << "- sigma = " << sigma << endl;
-    }
-    else if (is_same_v<Scalar, complex<double>> || is_same_v<Scalar, complex<long double>>)
-    {
-      stream << "Normal distribution: - mu = " << real(mu);
-      if (imag(mu) > 0)
-      {
-        stream << " + i";
-      }
-      else
-      {
-        stream << " - i";
-      }
-      stream << abs(imag(mu)) << endl;
-
-      stream << string(21, ' ') << "- sigma = " << real(sigma);
-      if (imag(sigma) > 0)
-      {
-        stream << " + i";
-      }
-      else
-      {
-        stream << " - i";
-      }
-      stream << abs(imag(sigma)) << endl;
-    }
+    stream << "Normal distribution: - mu = " << mu << endl;
+    stream << string(21, ' ') << "- sigma = " << sigma << endl;
   }
-  else
+  else if (is_same_v<Scalar, complex<double>> || is_same_v<Scalar, complex<long double>>)
   {
-    stream << "Normal distribution: - mus = ";
-    if (is_same_v<Scalar, double> || is_same_v<Scalar, long double>)
+    stream << "Normal distribution: - mu = " << real(mu);
+    if (imag(mu) > 0)
     {
-      for (size_t i{0}; i < mus.size(); ++i)
-      {
-        stream << mus[i];
-        if (i != mus.size())
-        {
-          stream << ", ";
-        }
-        else
-        {
-          stream << endl;
-        }
-      }
-      stream << string(23, ' ') << "- sigma = " << sigma << endl;
+      stream << " + i";
     }
-    else if (is_same_v<Scalar, complex<double>> || is_same_v<Scalar, complex<long double>>)
+    else
     {
-      for (size_t i{0}; i < mus.size(); ++i)
-      {
-        stream << real(mus[i]);
-        if (imag(mus[i]) > 0)
-        {
-          stream << " + i";
-        }
-        else
-        {
-          stream << " - i";
-        }
-        stream << abs(imag(mus[i]));
-
-        if (i != mus.size())
-        {
-          stream << ", ";
-        }
-        else
-        {
-          stream << endl;
-        }
-      }
-
-      stream << string(23, ' ') << "- sigma = " << real(sigma);
-      if (imag(sigma) > 0)
-      {
-        stream << " + i";
-      }
-      else
-      {
-        stream << " - i";
-      }
-      stream << abs(imag(sigma)) << endl;
+      stream << " - i";
     }
+    stream << abs(imag(mu)) << endl;
+
+    stream << string(21, ' ') << "- sigma = " << real(sigma);
+    if (imag(sigma) > 0)
+    {
+      stream << " + i";
+    }
+    else
+    {
+      stream << " - i";
+    }
+    stream << abs(imag(sigma)) << endl;
   }
 
   stream << string(38, '-') << endl;
@@ -1644,34 +1894,34 @@ void print_sym_find(ostream &stream, const int &order, const int &no_cycles,
 
   if constexpr (is_same_v<Scalar, double>)
   {
-    stream << string(95, '-') << endl;
-    stream << "| i   ||  Ratio  |   Eff2   |   Eff4   |   Eff6   |          a          |          b          |\n";
-    stream << string(95, '=') << endl;
+    stream << string(106, '-') << endl;
+    stream << "| i   ||  Ratio  |   Eff2   |   Eff4   |   Eff6   |   Eff8   |          a          |          b          |\n";
+    stream << string(106, '=') << endl;
   }
   else if constexpr (is_same_v<Scalar, complex<double>>)
   {
-    stream << string(139, '-') << endl;
-    stream << "| i   ||  Ratio  |   Eff2   |   Eff4   |   Eff6   |                     a                     |                     b                     |\n";
-    stream << string(139, '=') << endl;
+    stream << string(150, '-') << endl;
+    stream << "| i   ||  Ratio  |   Eff2   |   Eff4   |   Eff6   |   Eff8   |                     a                     |                     b                     |\n";
+    stream << string(150, '=') << endl;
   }
   else if constexpr (is_same_v<Scalar, long double>)
   {
-    stream << string(103, '-') << endl;
-    stream << "| i   ||  Ratio  |   Eff2   |   Eff4   |   Eff6   |            a            |            b            |\n";
-    stream << string(103, '=') << endl;
+    stream << string(114, '-') << endl;
+    stream << "| i   ||  Ratio  |   Eff2   |   Eff4   |   Eff6   |   Eff8   |            a            |            b            |\n";
+    stream << string(114, '=') << endl;
   }
   else if constexpr (is_same_v<Scalar, complex<long double>>)
   {
-    stream << string(155, '-') << endl;
-    stream << "| i   ||  Ratio  |   Eff2   |   Eff4   |   Eff6   |                         a                         |                         b                         |\n";
-    stream << string(155, '=') << endl;
+    stream << string(166, '-') << endl;
+    stream << "| i   ||  Ratio  |   Eff2   |   Eff4   |   Eff6   |   Eff8   |                         a                         |                         b                         |\n";
+    stream << string(166, '=') << endl;
   }
 }
 
 
 template <typename RealT>
 void print_find1(ostream &stream, const int &tracker, const double &ratio,
-                 const RealT &eff2, const RealT &eff4, const RealT &eff6)
+                 const RealT &eff2, const RealT &eff4, const RealT &eff6, const RealT &eff8)
 {
   stream << "| " << tracker;
 
@@ -1778,6 +2028,31 @@ void print_find1(ostream &stream, const int &tracker, const double &ratio,
     }
     stream << eff6 << " | ";
   }
+
+  if (eff8 == INFINITY)
+  {
+    stream << "infinity | ";
+  }
+  else
+  {
+    if (eff8 > 1e3 || eff8 <= 1e-4)
+    {
+      stream << scientific << setprecision(2);
+    }
+    else if (eff8 > 1e2)
+    {
+      stream << fixed << setprecision(4);
+    }
+    else if (eff8 > 1e1)
+    {
+      stream << fixed << setprecision(5);
+    }
+    else
+    {
+      stream << fixed << setprecision(6);
+    }
+    stream << eff8 << " | ";
+  }
 }
 
 
@@ -1799,22 +2074,47 @@ void print_find2(ostream &stream, const VectorXd &a_vec, const VectorXd &b_vec)
   }
   stream << b_vec[0] << " |\n";
 
-  for (int j{1}; j < a_vec.size(); ++j)
+  if (a_vec.size() > b_vec.size())
   {
-    stream << "|" << string(5, ' ') << "||" << string(9, ' ') << "|" << string(10, ' ') << "|" << string(10, ' ') << "|" << string(10, ' ') << "| ";
-
-    if (a_vec[j] >= 0)
+    for (int j{1}; j < a_vec.size(); ++j)
     {
-      stream << " ";
+      stream << "|" << string(5, ' ') << "||" << string(9, ' ') << "|" << string(10, ' ') << "|" << string(10, ' ') << "|" << string(10, ' ') << "|" << string(10, ' ') << "| ";
+      if (a_vec[j] >= 0)
+      {
+        stream << " ";
+      }
+      stream << a_vec[j] << " | ";
+      if (j != a_vec.size() - 1)
+      {
+        if (b_vec[j] >= 0)
+        {
+          stream << " ";
+        }
+        stream << b_vec[j] << " |\n";
+      }
+      else
+      {
+        stream << string(20, ' ') << "|" << endl;
+      }
     }
-    stream << a_vec[j] << " | ";
-
-    if (a_vec.size() != b_vec.size() && j == a_vec.size() - 1)
+  }
+  else if (b_vec.size() > a_vec.size())
+  {
+    for (int j{1}; j < b_vec.size(); ++j)
     {
-      stream << string(20, ' ') << "|" << endl;
-    }
-    else
-    {
+      stream << "|" << string(5, ' ') << "||" << string(9, ' ') << "|" << string(10, ' ') << "|" << string(10, ' ') << "|" << string(10, ' ') << "|" << string(10, ' ') << "| ";
+      if (j != b_vec.size() - 1)
+      {
+        if (a_vec[j] >= 0)
+        {
+          stream << " ";
+        }
+        stream << a_vec[j] << " | ";
+      }
+      else
+      {
+        stream << string(20, ' ') << "| ";
+      }
       if (b_vec[j] >= 0)
       {
         stream << " ";
@@ -1822,8 +2122,24 @@ void print_find2(ostream &stream, const VectorXd &a_vec, const VectorXd &b_vec)
       stream << b_vec[j] << " |\n";
     }
   }
-
-  stream << string(95, '-') << endl;
+  else
+  {
+    for (int j{1}; j < a_vec.size(); ++j)
+    {
+      stream << "|" << string(5, ' ') << "||" << string(9, ' ') << "|" << string(10, ' ') << "|" << string(10, ' ') << "|" << string(10, ' ') << "|" << string(10, ' ') << "| ";
+      if (a_vec[j] >= 0)
+      {
+        stream << " ";
+      }
+      stream << a_vec[j] << " | ";
+      if (b_vec[j] >= 0)
+      {
+        stream << " ";
+      }
+      stream << b_vec[j] << " |\n";
+    }
+  }
+  stream << string(106, '-') << endl;
 }
 
 // Specialization for VectorXcd
@@ -1864,38 +2180,80 @@ void print_find2(ostream &stream, const VectorXcd &a_vec, const VectorXcd &b_vec
   }
   stream << abs(imag(b_vec[0])) << " |\n";
 
-  for (int j{1}; j < a_vec.size(); ++j)
+  if (a_vec.size() > b_vec.size())
   {
-    stream << "|" << string(5, ' ') << "||" << string(9, ' ') << "|" << string(10, ' ') << "|" << string(10, ' ') << "|" << string(10, ' ') << "| ";
+    for (int j{1}; j < a_vec.size(); ++j)
+    {
+      stream << "|" << string(5, ' ') << "||" << string(9, ' ') << "|" << string(10, ' ') << "|" << string(10, ' ') << "|" << string(10, ' ') << "|" << string(10, ' ') << "| ";
+      if (real(a_vec[j]) >= 0)
+      {
+        stream << " ";
+      }
+      stream << real(a_vec[j]);
+      if (imag(a_vec[j]) >= 0)
+      {
+        stream << " + i";
+      }
+      else
+      {
+        stream << " - i";
+      }
+      stream << abs(imag(a_vec[j])) << " | ";
 
-    if (real(a_vec[j]) >= 0)
-    {
-      stream << " ";
+      if (j != a_vec.size() - 1)
+      {
+        if (real(b_vec[j]) >= 0)
+        {
+          stream << " ";
+        }
+        stream << real(b_vec[j]);
+        if (imag(b_vec[j]) >= 0)
+        {
+          stream << " + i";
+        }
+        else
+        {
+          stream << " - i";
+        }
+        stream << abs(imag(b_vec[j])) << " |\n";
+      }
+      else
+      {
+        stream << string(42, ' ') << "|" << endl;
+      }
     }
-    stream << real(a_vec[j]);
-
-    if (imag(a_vec[j]) >= 0)
+  }
+  else if (b_vec.size() > a_vec.size())
+  {
+    for (int j{1}; j < b_vec.size(); ++j)
     {
-      stream << " + i";
-    }
-    else
-    {
-      stream << " - i";
-    }
-    stream << abs(imag(a_vec[j])) << " | ";
-
-    if (a_vec.size() != b_vec.size() && j == a_vec.size() - 1)
-    {
-      stream << string(42, ' ') << "|" << endl;
-    }
-    else
-    {
+      stream << "|" << string(5, ' ') << "||" << string(9, ' ') << "|" << string(10, ' ') << "|" << string(10, ' ') << "|" << string(10, ' ') << "|" << string(10, ' ') << "| ";
+      if (j != b_vec.size() - 1)
+      {
+        if (real(a_vec[j]) >= 0)
+        {
+          stream << " ";
+        }
+        stream << real(a_vec[j]);
+        if (imag(a_vec[j]) >= 0)
+        {
+          stream << " + i";
+        }
+        else
+        {
+          stream << " - i";
+        }
+        stream << abs(imag(a_vec[j])) << " | ";
+      }
+      else
+      {
+        stream << string(42, ' ') << "| ";
+      }
       if (real(b_vec[j]) >= 0)
       {
         stream << " ";
       }
       stream << real(b_vec[j]);
-
       if (imag(b_vec[j]) >= 0)
       {
         stream << " + i";
@@ -1907,8 +2265,42 @@ void print_find2(ostream &stream, const VectorXcd &a_vec, const VectorXcd &b_vec
       stream << abs(imag(b_vec[j])) << " |\n";
     }
   }
-
-  stream << string(139, '-') << endl;
+  else
+  {
+    for (int j{1}; j < a_vec.size(); ++j)
+    {
+      stream << "|" << string(5, ' ') << "||" << string(9, ' ') << "|" << string(10, ' ') << "|" << string(10, ' ') << "|" << string(10, ' ') << "|" << string(10, ' ') << "| ";
+      if (real(a_vec[j]) >= 0)
+      {
+        stream << " ";
+      }
+      stream << real(a_vec[j]);
+      if (imag(a_vec[j]) >= 0)
+      {
+        stream << " + i";
+      }
+      else
+      {
+        stream << " - i";
+      }
+      stream << abs(imag(a_vec[j])) << " | ";
+      if (real(b_vec[j]) >= 0)
+      {
+        stream << " ";
+      }
+      stream << real(b_vec[j]);
+      if (imag(b_vec[j]) >= 0)
+      {
+        stream << " + i";
+      }
+      else
+      {
+        stream << " - i";
+      }
+      stream << abs(imag(b_vec[j])) << " |\n";
+    }
+  }
+  stream << string(150, '-') << endl;
 }
 
 // Specialization for VectorXld
@@ -1929,22 +2321,47 @@ void print_find2(ostream &stream, const VectorXld &a_vec, const VectorXld &b_vec
   }
   stream << b_vec[0] << " |\n";
 
-  for (int j{1}; j < a_vec.size(); ++j)
+  if (a_vec.size() > b_vec.size())
   {
-    stream << "|" << string(5, ' ') << "||" << string(9, ' ') << "|" << string(10, ' ') << "|" << string(10, ' ') << "|" << string(10, ' ') << "| ";
-
-    if (a_vec[j] >= 0)
+    for (int j{1}; j < a_vec.size(); ++j)
     {
-      stream << " ";
+      stream << "|" << string(5, ' ') << "||" << string(9, ' ') << "|" << string(10, ' ') << "|" << string(10, ' ') << "|" << string(10, ' ') << "|" << string(10, ' ') << "| ";
+      if (a_vec[j] >= 0)
+      {
+        stream << " ";
+      }
+      stream << a_vec[j] << " | ";
+      if (j != a_vec.size() - 1)
+      {
+        if (b_vec[j] >= 0)
+        {
+          stream << " ";
+        }
+        stream << b_vec[j] << " |\n";
+      }
+      else
+      {
+        stream << string(24, ' ') << "|" << endl;
+      }
     }
-    stream << a_vec[j] << " | ";
-
-    if (a_vec.size() != b_vec.size() && j == a_vec.size() - 1)
+  }
+  else if (b_vec.size() > a_vec.size())
+  {
+    for (int j{1}; j < b_vec.size(); ++j)
     {
-      stream << string(24, ' ') << "|" << endl;
-    }
-    else
-    {
+      stream << "|" << string(5, ' ') << "||" << string(9, ' ') << "|" << string(10, ' ') << "|" << string(10, ' ') << "|" << string(10, ' ') << "|" << string(10, ' ') << "| ";
+      if (j != b_vec.size() - 1)
+      {
+        if (a_vec[j] >= 0)
+        {
+          stream << " ";
+        }
+        stream << a_vec[j] << " | ";
+      }
+      else
+      {
+        stream << string(24, ' ') << "| ";
+      }
       if (b_vec[j] >= 0)
       {
         stream << " ";
@@ -1952,8 +2369,24 @@ void print_find2(ostream &stream, const VectorXld &a_vec, const VectorXld &b_vec
       stream << b_vec[j] << " |\n";
     }
   }
-
-  stream << string(103, '-') << endl;
+  else
+  {
+    for (int j{1}; j < a_vec.size(); ++j)
+    {
+      stream << "|" << string(5, ' ') << "||" << string(9, ' ') << "|" << string(10, ' ') << "|" << string(10, ' ') << "|" << string(10, ' ') << "|" << string(10, ' ') << "| ";
+      if (a_vec[j] >= 0)
+      {
+        stream << " ";
+      }
+      stream << a_vec[j] << " | ";
+      if (b_vec[j] >= 0)
+      {
+        stream << " ";
+      }
+      stream << b_vec[j] << " |\n";
+    }
+  }
+  stream << string(114, '-') << endl;
 }
 
 // Specialization for VectorXcld
@@ -1994,39 +2427,81 @@ void print_find2(ostream &stream, const VectorXcld &a_vec, const VectorXcld &b_v
   }
   stream << abs(imag(b_vec[0])) << " |\n";
 
-  for (int j{1}; j < a_vec.size(); ++j)
+  if (a_vec.size() > b_vec.size())
   {
-    stream << "|" << string(5, ' ') << "||" << string(9, ' ') << "|" << string(10, ' ') << "|" << string(10, ' ') << "|" << string(10, ' ') << "| ";
+    for (int j{1}; j < a_vec.size(); ++j)
+    {
+      stream << "|" << string(5, ' ') << "||" << string(9, ' ') << "|" << string(10, ' ') << "|" << string(10, ' ') << "|" << string(10, ' ') << "|" << string(10, ' ') << "| ";
+      if (real(a_vec[j]) >= 0)
+      {
+        stream << " ";
+      }
+      stream << real(a_vec[j]);
+      if (imag(a_vec[j]) >= 0)
+      {
+        stream << " + i";
+      }
+      else
+      {
+        stream << " - i";
+      }
+      stream << abs(imag(a_vec[j])) << " | ";
 
-    if (real(a_vec[j]) >= 0)
-    {
-      stream << " ";
+      if (j != a_vec.size() - 1)
+      {
+        if (real(b_vec[j]) >= 0)
+        {
+          stream << " ";
+        }
+        stream << real(b_vec[j]);
+        if (imag(b_vec[j]) >= 0)
+        {
+          stream << " + i";
+        }
+        else
+        {
+          stream << " - i";
+        }
+        stream << abs(imag(b_vec[j])) << " |\n";
+      }
+      else
+      {
+        stream << string(50, ' ') << "|" << endl;
+      }
     }
-    stream << real(a_vec[j]);
-
-    if (imag(a_vec[j]) >= 0)
+  }
+  else if (b_vec.size() > a_vec.size())
+  {
+    for (int j{1}; j < b_vec.size(); ++j)
     {
-      stream << " + i";
-    }
-    else
-    {
-      stream << " - i";
-    }
-    stream << abs(imag(a_vec[j])) << " | ";
-
-    if (a_vec.size() != b_vec.size() && j == a_vec.size() - 1)
-    {
-      stream << string(50, ' ') << "|" << endl;
-    }
-    else
-    {
-      if (real(b_vec[j]) > 0)
+      stream << "|" << string(5, ' ') << "||" << string(9, ' ') << "|" << string(10, ' ') << "|" << string(10, ' ') << "|" << string(10, ' ') << "|" << string(10, ' ') << "| ";
+      if (j != b_vec.size() - 1)
+      {
+        if (real(a_vec[j]) >= 0)
+        {
+          stream << " ";
+        }
+        stream << real(a_vec[j]);
+        if (imag(a_vec[j]) >= 0)
+        {
+          stream << " + i";
+        }
+        else
+        {
+          stream << " - i";
+        }
+        stream << abs(imag(a_vec[j])) << " | ";
+      }
+      else
+      {
+        stream << string(50, ' ') << "| ";
+      }
+      if (real(b_vec[j]) >= 0)
       {
         stream << " ";
       }
       stream << real(b_vec[j]);
-
-      if (imag(b_vec[j]) > 0)
+      if (imag(b_vec[j]) >= 0)
       {
         stream << " + i";
       }
@@ -2037,8 +2512,289 @@ void print_find2(ostream &stream, const VectorXcld &a_vec, const VectorXcld &b_v
       stream << abs(imag(b_vec[j])) << " |\n";
     }
   }
+  else
+  {
+    for (int j{1}; j < a_vec.size(); ++j)
+    {
+      stream << "|" << string(5, ' ') << "||" << string(9, ' ') << "|" << string(10, ' ') << "|" << string(10, ' ') << "|" << string(10, ' ') << "|" << string(10, ' ') << "| ";
+      if (real(a_vec[j]) >= 0)
+      {
+        stream << " ";
+      }
+      stream << real(a_vec[j]);
+      if (imag(a_vec[j]) >= 0)
+      {
+        stream << " + i";
+      }
+      else
+      {
+        stream << " - i";
+      }
+      stream << abs(imag(a_vec[j])) << " | ";
+      if (real(b_vec[j]) >= 0)
+      {
+        stream << " ";
+      }
+      stream << real(b_vec[j]);
+      if (imag(b_vec[j]) >= 0)
+      {
+        stream << " + i";
+      }
+      else
+      {
+        stream << " - i";
+      }
+      stream << abs(imag(b_vec[j])) << " |\n";
+    }
+  }
+  stream << string(166, '-') << endl;
+}
 
-  stream << string(155, '-') << endl;
+// Specialization for VectorXQ
+template <>
+void print_find2(ostream &stream, const VectorXQ &a_vec, const VectorXQ &b_vec)
+{
+  stream << fixed << setprecision(36);
+
+  if (a_vec[0] >= 0)
+  {
+    stream << " ";
+  }
+  stream << a_vec[0] << " | ";
+
+  if (b_vec[0] >= 0)
+  {
+    stream << " ";
+  }
+  stream << b_vec[0] << " |\n";
+
+  if (a_vec.size() > b_vec.size())
+  {
+    for (int j{1}; j < a_vec.size(); ++j)
+    {
+      stream << "|" << string(5, ' ') << "||" << string(9, ' ') << "|" << string(10, ' ') << "|" << string(10, ' ') << "|" << string(10, ' ') << "|" << string(10, ' ') << "| ";
+      if (a_vec[j] >= 0)
+      {
+        stream << " ";
+      }
+      stream << a_vec[j] << " | ";
+      if (j != a_vec.size() - 1)
+      {
+        if (b_vec[j] >= 0)
+        {
+          stream << " ";
+        }
+        stream << b_vec[j] << " |\n";
+      }
+      else
+      {
+        stream << string(24, ' ') << "|" << endl;
+      }
+    }
+  }
+  else if (b_vec.size() > a_vec.size())
+  {
+    for (int j{1}; j < b_vec.size(); ++j)
+    {
+      stream << "|" << string(5, ' ') << "||" << string(9, ' ') << "|" << string(10, ' ') << "|" << string(10, ' ') << "|" << string(10, ' ') << "|" << string(10, ' ') << "| ";
+      if (j != b_vec.size() - 1)
+      {
+        if (a_vec[j] >= 0)
+        {
+          stream << " ";
+        }
+        stream << a_vec[j] << " | ";
+      }
+      else
+      {
+        stream << string(24, ' ') << "| ";
+      }
+      if (b_vec[j] >= 0)
+      {
+        stream << " ";
+      }
+      stream << b_vec[j] << " |\n";
+    }
+  }
+  else
+  {
+    for (int j{1}; j < a_vec.size(); ++j)
+    {
+      stream << "|" << string(5, ' ') << "||" << string(9, ' ') << "|" << string(10, ' ') << "|" << string(10, ' ') << "|" << string(10, ' ') << "|" << string(10, ' ') << "| ";
+      if (a_vec[j] >= 0)
+      {
+        stream << " ";
+      }
+      stream << a_vec[j] << " | ";
+      if (b_vec[j] >= 0)
+      {
+        stream << " ";
+      }
+      stream << b_vec[j] << " |\n";
+    }
+  }
+  stream << string(146, '-') << endl;
+}
+
+// Specialization for VectorXcQ
+template <>
+void print_find2(ostream &stream, const VectorXcQ &a_vec, const VectorXcQ &b_vec)
+{
+  stream << fixed << setprecision(36);
+
+  if (real(a_vec[0]) >= 0)
+  {
+    stream << " ";
+  }
+  stream << real(a_vec[0]);
+
+  if (imag(a_vec[0]) >= 0)
+  {
+    stream << " + i";
+  }
+  else
+  {
+    stream << " - i";
+  }
+  stream << abs(imag(a_vec[0])) << " | ";
+
+  if (real(b_vec[0]) >= 0)
+  {
+    stream << " ";
+  }
+  stream << real(b_vec[0]);
+
+  if (imag(b_vec[0]) >= 0)
+  {
+    stream << " + i";
+  }
+  else
+  {
+    stream << " - i";
+  }
+  stream << abs(imag(b_vec[0])) << " |\n";
+
+  if (a_vec.size() > b_vec.size())
+  {
+    for (int j{1}; j < a_vec.size(); ++j)
+    {
+      stream << "|" << string(5, ' ') << "||" << string(9, ' ') << "|" << string(10, ' ') << "|" << string(10, ' ') << "|" << string(10, ' ') << "|" << string(10, ' ') << "| ";
+      if (real(a_vec[j]) >= 0)
+      {
+        stream << " ";
+      }
+      stream << real(a_vec[j]);
+      if (imag(a_vec[j]) >= 0)
+      {
+        stream << " + i";
+      }
+      else
+      {
+        stream << " - i";
+      }
+      stream << abs(imag(a_vec[j])) << " | ";
+
+      if (j != a_vec.size() - 1)
+      {
+        if (real(b_vec[j]) >= 0)
+        {
+          stream << " ";
+        }
+        stream << real(b_vec[j]);
+        if (imag(b_vec[j]) >= 0)
+        {
+          stream << " + i";
+        }
+        else
+        {
+          stream << " - i";
+        }
+        stream << abs(imag(b_vec[j])) << " |\n";
+      }
+      else
+      {
+        stream << string(50, ' ') << "|" << endl;
+      }
+    }
+  }
+  else if (b_vec.size() > a_vec.size())
+  {
+    for (int j{1}; j < b_vec.size(); ++j)
+    {
+      stream << "|" << string(5, ' ') << "||" << string(9, ' ') << "|" << string(10, ' ') << "|" << string(10, ' ') << "|" << string(10, ' ') << "|" << string(10, ' ') << "| ";
+      if (j != b_vec.size() - 1)
+      {
+        if (real(a_vec[j]) >= 0)
+        {
+          stream << " ";
+        }
+        stream << real(a_vec[j]);
+        if (imag(a_vec[j]) >= 0)
+        {
+          stream << " + i";
+        }
+        else
+        {
+          stream << " - i";
+        }
+        stream << abs(imag(a_vec[j])) << " | ";
+      }
+      else
+      {
+        stream << string(50, ' ') << "| ";
+      }
+      if (real(b_vec[j]) >= 0)
+      {
+        stream << " ";
+      }
+      stream << real(b_vec[j]);
+      if (imag(b_vec[j]) >= 0)
+      {
+        stream << " + i";
+      }
+      else
+      {
+        stream << " - i";
+      }
+      stream << abs(imag(b_vec[j])) << " |\n";
+    }
+  }
+  else
+  {
+    for (int j{1}; j < a_vec.size(); ++j)
+    {
+      stream << "|" << string(5, ' ') << "||" << string(9, ' ') << "|" << string(10, ' ') << "|" << string(10, ' ') << "|" << string(10, ' ') << "|" << string(10, ' ') << "| ";
+      if (real(a_vec[j]) >= 0)
+      {
+        stream << " ";
+      }
+      stream << real(a_vec[j]);
+      if (imag(a_vec[j]) >= 0)
+      {
+        stream << " + i";
+      }
+      else
+      {
+        stream << " - i";
+      }
+      stream << abs(imag(a_vec[j])) << " | ";
+      if (real(b_vec[j]) >= 0)
+      {
+        stream << " ";
+      }
+      stream << real(b_vec[j]);
+      if (imag(b_vec[j]) >= 0)
+      {
+        stream << " + i";
+      }
+      else
+      {
+        stream << " - i";
+      }
+      stream << abs(imag(b_vec[j])) << " |\n";
+    }
+  }
+  stream << string(230, '-') << endl;
 }
 
 
@@ -2395,6 +3151,17 @@ void print_num_scheme(ostream &stream, NScheme<VectorXd> &scheme)
       stream << "|   6   | " << scheme.err2(6) << " | " << scheme.eff(6) << " |" << endl;
     }
   }
+  if (scheme.n >= 8)
+  {
+    if (scheme.eff(8) == INFINITY)
+    {
+      stream << "|   8   |          0.0           |        Infinity        |" << endl;
+    }
+    else
+    {
+      stream << "|   8   | " << scheme.err2(8) << " | " << scheme.eff(8) << " |" << endl;
+    }
+  }
   stream << string(59, '-') << endl
          << endl;
 }
@@ -2477,6 +3244,17 @@ void print_num_scheme(ostream &stream, NScheme<VectorXcd> &scheme)
       stream << "|   6   | " << scheme.err2(6) << " | " << scheme.eff(6) << " |" << endl;
     }
   }
+  if (scheme.n >= 8)
+  {
+    if (scheme.eff(8) == INFINITY)
+    {
+      stream << "|   8   |          0.0           |        Infinity        |" << endl;
+    }
+    else
+    {
+      stream << "|   8   | " << scheme.err2(8) << " | " << scheme.eff(8) << " |" << endl;
+    }
+  }
   stream << string(59, '-') << endl
          << endl;
 }
@@ -2539,6 +3317,17 @@ void print_num_scheme(ostream &stream, NScheme<VectorXld> &scheme)
     else
     {
       stream << "|   6   | " << scheme.err2(6) << " | " << scheme.eff(6) << " |" << endl;
+    }
+  }
+  if (scheme.n >= 8)
+  {
+    if (scheme.eff(8) == INFINITY)
+    {
+      stream << "|   8   |            0.0             |          Infinity          |" << endl;
+    }
+    else
+    {
+      stream << "|   8   | " << scheme.err2(8) << " | " << scheme.eff(8) << " |" << endl;
     }
   }
   stream << string(67, '-') << endl
@@ -2623,10 +3412,188 @@ void print_num_scheme(ostream &stream, NScheme<VectorXcld> &scheme)
       stream << "|   6   | " << scheme.err2(6) << " | " << scheme.eff(6) << " |" << endl;
     }
   }
+  if (scheme.n >= 8)
+  {
+    if (scheme.eff(8) == INFINITY)
+    {
+      stream << "|   8   |            0.0             |          Infinity          |" << endl;
+    }
+    else
+    {
+      stream << "|   8   | " << scheme.err2(8) << " | " << scheme.eff(8) << " |" << endl;
+    }
+  }
   stream << string(67, '-') << endl
          << endl;
 }
 
+// Specialization for VectorXQ
+template <>
+void print_num_scheme(ostream &stream, NScheme<VectorXQ> &scheme)
+{
+  stream << string(99, '-') << endl;
+  stream << fixed << setprecision(36);
+  stream << "Vector a: ";
+  for (int i = 0; i < scheme.a_eval.size(); ++i)
+  {
+    stream << scheme.a_eval[i];
+    if (i != scheme.a_eval.size() - 1)
+    {
+      stream << ", ";
+    }
+  }
+  stream << endl;
+  stream << "Vector b: ";
+  for (int i = 0; i < scheme.b_eval.size(); ++i)
+  {
+    stream << scheme.b_eval[i];
+    if (i != scheme.b_eval.size() - 1)
+    {
+      stream << ", ";
+    }
+  }
+  stream << endl;
+  stream << string(99, '-') << endl;
+  stream << scientific << setprecision(36);
+  stream << "| Order |                  Error^2                   |                 Efficiency                 |" << endl;
+  stream << string(99, '-') << endl;
+  if (scheme.eff(2) == INFINITY)
+  {
+    stream << "|   2   |                    0.0                     |                  Infinity                  |" << endl;
+  }
+  else
+  {
+    stream << "|   2   | " << scheme.err2(2) << " | " << scheme.eff(2) << " |" << endl;
+  }
+  if (scheme.n >= 4)
+  {
+    if (scheme.eff(4) == INFINITY)
+    {
+      stream << "|   4   |                    0.0                     |                  Infinity                  |" << endl;
+    }
+    else
+    {
+      stream << "|   4   | " << scheme.err2(4) << " | " << scheme.eff(4) << " |" << endl;
+    }
+  }
+  if (scheme.n >= 6)
+  {
+    if (scheme.eff(6) == INFINITY)
+    {
+      stream << "|   6   |                    0.0                     |                  Infinity                  |" << endl;
+    }
+    else
+    {
+      stream << "|   6   | " << scheme.err2(6) << " | " << scheme.eff(6) << " |" << endl;
+    }
+  }
+  if (scheme.n >= 8)
+  {
+    if (scheme.eff(8) == INFINITY)
+    {
+      stream << "|   8   |                    0.0                     |                  Infinity                  |" << endl;
+    }
+    else
+    {
+      stream << "|   8   | " << scheme.err2(8) << " | " << scheme.eff(8) << " |" << endl;
+    }
+  }
+  stream << string(99, '-') << endl
+         << endl;
+}
+
+// Specialization for VectorXcQ
+template <>
+void print_num_scheme(ostream &stream, NScheme<VectorXcQ> &scheme)
+{
+  stream << string(99, '-') << endl;
+  stream << fixed << setprecision(36);
+  stream << "Vector a: ";
+  for (int i = 0; i < scheme.a_eval.size(); ++i)
+  {
+    stream << scheme.a_eval[i].real();
+    if (scheme.a_eval[i].imag() > 0)
+    {
+      stream << " + i";
+    }
+    else
+    {
+      stream << " - i";
+    }
+    stream << abs(scheme.a_eval[i].imag());
+    if (i != scheme.a_eval.size() - 1)
+    {
+      stream << ", ";
+    }
+  }
+  stream << endl;
+  stream << "Vector b: ";
+  for (int i = 0; i < scheme.b_eval.size(); ++i)
+  {
+    stream << scheme.b_eval[i].real();
+    if (scheme.b_eval[i].imag() > 0)
+    {
+      stream << " + i";
+    }
+    else
+    {
+      stream << " - i";
+    }
+    stream << abs(scheme.b_eval[i].imag());
+    if (i != scheme.b_eval.size() - 1)
+    {
+      stream << ", ";
+    }
+  }
+  stream << endl;
+  stream << string(99, '-') << endl;
+  stream << scientific << setprecision(36);
+  stream << "| Order |                  Error^2                   |                 Efficiency                 |" << endl;
+  stream << string(99, '-') << endl;
+  if (scheme.eff(2) == INFINITY)
+  {
+    stream << "|   2   |                    0.0                     |                  Infinity                  |" << endl;
+  }
+  else
+  {
+    stream << "|   2   | " << scheme.err2(2) << " | " << scheme.eff(2) << " |" << endl;
+  }
+  if (scheme.n >= 4)
+  {
+    if (scheme.eff(4) == INFINITY)
+    {
+      stream << "|   4   |                    0.0                     |                  Infinity                  |" << endl;
+    }
+    else
+    {
+      stream << "|   4   | " << scheme.err2(4) << " | " << scheme.eff(4) << " |" << endl;
+    }
+  }
+  if (scheme.n >= 6)
+  {
+    if (scheme.eff(6) == INFINITY)
+    {
+      stream << "|   6   |                    0.0                     |                  Infinity                  |" << endl;
+    }
+    else
+    {
+      stream << "|   6   | " << scheme.err2(6) << " | " << scheme.eff(6) << " |" << endl;
+    }
+  }
+  if (scheme.n >= 8)
+  {
+    if (scheme.eff(8) == INFINITY)
+    {
+      stream << "|   8   |                    0.0                     |                  Infinity                  |" << endl;
+    }
+    else
+    {
+      stream << "|   8   | " << scheme.err2(8) << " | " << scheme.eff(8) << " |" << endl;
+    }
+  }
+  stream << string(99, '-') << endl
+         << endl;
+}
 
 // Constructor for IO
 IO::IO(const string read_file)
@@ -2686,56 +3653,35 @@ IO::~IO()
 
 // *** Routines ***
 
-// Numerical Minimization
-// Methods: - minimize: minimize the computed scheme manifold once using initial vector a_vec, b_vec
-//          - min_twostep: minimize the computed scheme manifold twice (constraint minimization in the 2. step)
-//          - find: find as many minima for the computed scheme manifold
+// ** Scheme computations **
+
+// Symbolic Scheme computation
+// Methods: - scratch: compute scheme from scratch
+//          - load: load scheme from file
+//          - load_iterate: load scheme from file and iterate for 2 cycles
+// Optional methods (Execute if provided): - Compute errors and efficiencies (needs a_vec and b_vec)
+//                                         - Save the scheme (needs a save folder)
 template <typename Scalar>
-void IO::num_minim()
+void IO::sym_scheme()
 {
   // Determine the Vec type from Scalar
   using Vec = Eigen::Matrix<Scalar, Eigen::Dynamic, 1>;
-  using RealT = typename Eigen::NumTraits<typename Vec::Scalar>::Real;
 
   // Specific parameters
-  string method; // Method to use for minimization (minimize, min_twostep, find)
+  string method; // Method to execute (scratch, load, load_iterate)
 
-  // Initial ai and bi vectors
-  Vec a_init;
-  Vec b_init;
+  // ai and bi evaluation vectors
+  Vec a_eval;
+  Vec b_eval;
 
-  // Minimization hyperparameters
-  array<RealT, 4> eps1;            // Convergence criteria for the 1. step (eps1, eps2, eps3, eps4)
-  array<RealT, 4> eps2;            // Convergence criteria for the 2. step (eps1, eps2, eps3, eps4)
-  vector<RealT> wi;                // Weigths per order (w2, w4, w6, ...)
-  RealT step{1e-5};                // Numerical derivative step
-  int n_iter{500};                 // Number of iterations before quitting if convergence isn't achieved
-  array<RealT, 2> Ls{{9.0, 11.0}}; // L_up, L_down
-  RealT lambda{0.25};              // Damping parameter
+  // Load directory
+  string load_dir;
 
-  // Minima finder parameters
-  int N;                  // Number of initial conditions
-  int steps;              // Number of steps (1: minimize, 2: min_twostep)
-  RealT threshold{1e-18}; // Threshold to pass the minimal error
-  // Normal distribution parameters
-  Scalar mu;
-  vector<Scalar> mus;
-  Scalar sigma;
+  // Iteration steps
+  int steps;
 
-  // Sort the found minima accoring to Chi2
-  bool bsort{false};
-
-  // Verbose option (false: nothing, true: Change of ai, bi during iterations)
-  bool verbose;
-
-  // Minima comparison parameters
-  RealT tol{1e-15};
-
-  // Hessian freeze option
-  bool freeze{false};
-
-  // Ratio for the origin methods
-  RealT ratio{0.0};
+  // Verbose option (0: nothing, 1: cycles, 2: values)
+  char verbose;
 
   // Read the required parameters for the desired method
   string line;
@@ -2756,596 +3702,263 @@ void IO::num_minim()
     {
       method = value;
     }
-    // Initial ai and bi vectors
-    else if (key == "a_init")
+    // Evaluation vectors for ai and bi
+    else if (key == "a_eval")
     {
-      a_init = parse_list<Vec>(value);
+      a_eval = parse_list<Vec>(value);
     }
-    else if (key == "b_init")
+    else if (key == "b_eval")
     {
-      b_init = parse_list<Vec>(value);
+      b_eval = parse_list<Vec>(value);
     }
-    // Minimization hyperparameters
-    else if (key == "eps1")
+    // Load directory
+    else if (key == "load_dir")
     {
-      eps1 = parse_list<array<RealT, 4>>(value);
+      load_dir = value;
     }
-    else if (key == "eps2")
-    {
-      eps2 = parse_list<array<RealT, 4>>(value);
-    }
-    else if (key == "wi")
-    {
-      wi = parse_list<vector<RealT>>(value);
-    }
-    else if (key == "step")
-    {
-      step = parse_value<RealT>(value);
-    }
-    else if (key == "n_iter")
-    {
-      n_iter = stoi(value);
-    }
-    else if (key == "Ls")
-    {
-      Ls = parse_list<array<RealT, 2>>(value);
-    }
-    else if (key == "lambda")
-    {
-      lambda = parse_value<RealT>(value);
-    }
-    else if (key == "verbose")
-    {
-      verbose = stoi(value);
-    }
-    // Minima finder parameters
-    else if (key == "N")
-    {
-      N = stoi(value);
-    }
+    // Iteration steps
     else if (key == "steps")
     {
       steps = stoi(value);
     }
-    else if (key == "threshold")
+    // Verbose option
+    else if (key == "verbose")
     {
-      threshold = parse_value<RealT>(value);
-    }
-    else if (key == "mu")
-    {
-      mu = parse_value<Scalar>(value);
-    }
-    else if (key == "mus")
-    {
-      mus = parse_list<vector<Scalar>>(value);
-    }
-    else if (key == "sigma")
-    {
-      sigma = parse_value<Scalar>(value);
-    }
-    else if (key == "bsort")
-    {
-      bsort = stoi(value);
-    }
-    // Minima comparison parameters
-    else if (key == "tol")
-    {
-      tol = parse_value<RealT>(value);
-    }
-    // Hessian freeze option
-    else if (key == "freeze")
-    {
-      freeze = stoi(value);
-    }
-    else if (key == "ratio")
-    {
-      ratio = parse_value<RealT>(value);
+      verbose = stoi(value);
     }
   }
 
   // Close the read_file
   rfile.close();
 
-  // Fill the weights vector according to order
-  vector<RealT> W_vec{{wi[0], wi[0]}};
-  if (order == 4)
+  // Determine the scheme order based on the number of cycles (Only for printing)
+  int scheme_order;
+  if (no_cycles <= 2)
   {
-    for (size_t i{0}; i < 6; ++i)
-    {
-      W_vec.push_back(wi[1]);
-    }
+    scheme_order = 2;
   }
-  if (order == 6)
+  else if (no_cycles <= 6)
   {
-    for (size_t i{0}; i < 6; ++i)
-    {
-      W_vec.push_back(wi[1]);
-    }
-    for (size_t i{0}; i < 18; ++i)
-    {
-      W_vec.push_back(wi[2]);
-    }
+    scheme_order = 4;
+  }
+  else if (no_cycles <= 14)
+  {
+    scheme_order = 6;
+  }
+  else if (no_cycles <= 30)
+  {
+    scheme_order = 8;
+  }
+  else
+  {
+    scheme_order = 10;
   }
 
-  if (method == "minimize")
+  if (method == "scratch")
   {
-    cout << "Running Numerical Minimization (minimize) for order " << order << " and number of cycles q = " << no_cycles << endl;
-    cout << string(81, '=') << endl;
+    cout << "Running Symbolic Scheme up to order " << order << " and number of cycles q = " << no_cycles << endl;
+    cout << string(64, '=') << endl;
+    cout << "Computing the scheme from scratch:" << endl;
 
-    NMinimization<Vec> minim(a_init, b_init, step, order, no_cycles, W_vec, n_iter, eps1, Ls);
-    MinResult<Vec> mini{minim.minimize(lambda, nullptr, verbose)};
-
-    if (verbose)
+    if (is_same_v<Scalar, double> || is_same_v<Scalar, complex<double>>)
     {
-      mini.display();
-      cout << string(81, '-') << endl;
-    }
+      Scheme<double> scheme(order, no_cycles, verbose);
+      scheme.iterate();
 
-    NScheme<Vec> scheme(6, no_cycles, mini.a_vec, mini.b_vec);
-    scheme.iterate();
+      scheme.coefs.alpha.display_poly();
+      scheme.coefs.beta.display_poly();
 
-    if (!save_dir.empty())
-    {
-      string write_file = save_dir + "num_minimize_q" + to_string(no_cycles) + ".out";
-      ofstream wfile(write_file, ios::app);
-      if (!wfile.is_open())
+      if (no_cycles > 2)
       {
-        runtime_error("Error opening output file: " + write_file);
+        for (size_t c{0}; c < scheme.coefs.gammas.size(); ++c)
+        {
+          scheme.coefs.gammas[c].display_poly();
+        }
+      }
+      if (no_cycles > 6)
+      {
+        for (size_t c{0}; c < scheme.coefs.deltas.size(); ++c)
+        {
+          //scheme.coefs.deltas[c].display_poly();
+        }
       }
 
-      print_num_min(wfile, order, no_cycles, eps1, eps2, wi, step, n_iter, Ls, lambda, 1);
-      print_num_min(cout, order, no_cycles, eps1, eps2, wi, step, n_iter, Ls, lambda, 1);
+      // Save the scheme if a save directory is provided
+      if (!save_dir.empty())
+      {
+        cout << "Saving Scheme to " << save_dir << "saved_schemes/" << endl;
+        scheme.save(save_dir + "saved_schemes/");
+      }
 
-      print_num_min1(wfile, scheme, a_init, b_init);
-      print_num_min1(cout, scheme, a_init, b_init);
+      // Compute errors and efficiencies if evaluation vectors are provided
+      if (a_eval.size() > 0 && b_eval.size() > 0)
+      {
+        if (!save_dir.empty())
+        {
+          string write_file = save_dir + "sym_scheme_q" + to_string(no_cycles) + ".out";
+          ofstream wfile(write_file, ios::app);
+          if (!wfile.is_open())
+          {
+            runtime_error("Error opening output file: " + write_file);
+          }
+          wfile << "Scheme evaluation results:" << endl;
+          wfile << "Order: " << scheme_order << ", No. cycles: " << no_cycles << endl;
 
-      wfile << "\n\n";
+          cout << "Scheme evaluation results:" << endl;
+          cout << "Order: " << scheme_order << ", No. cycles: " << no_cycles << endl;
+
+          print_sym_scheme(wfile, scheme, a_eval, b_eval);
+          print_sym_scheme(cout, scheme, a_eval, b_eval);
+        }
+        else
+        {
+          cout << "Scheme evaluation results:" << endl;
+          cout << "Order: " << scheme_order << ", No. cycles: " << no_cycles << endl;
+          
+          print_sym_scheme(cout, scheme, a_eval, b_eval);
+        }
+      }
     }
-    else
+    else if (is_same_v<Scalar, long double> || is_same_v<Scalar, complex<long double>>)
     {
-      print_num_min(cout, order, no_cycles, eps1, eps2, wi, step, n_iter, Ls, lambda, 1);
-      print_num_min1(cout, scheme, a_init, b_init);
+      Scheme<long double> scheme(order, no_cycles, verbose);
+      scheme.iterate();
+
+      // Save the scheme if a save directory is provided
+      if (!save_dir.empty())
+      {
+        cout << "Saving Scheme to " << save_dir << "saved_schemes/" << endl;
+        scheme.save(save_dir + "saved_schemes/");
+      }
+
+      // Compute errors and efficiencies if evaluation vectors are provided
+      if (a_eval.size() > 0 && b_eval.size() > 0)
+      {
+        if (!save_dir.empty())
+        {
+          string write_file = save_dir + "sym_scheme_q" + to_string(no_cycles) + ".out";
+          ofstream wfile(write_file, ios::app);
+          if (!wfile.is_open())
+          {
+            runtime_error("Error opening output file: " + write_file);
+          }
+          wfile << "Scheme evaluation results:" << endl;
+          wfile << "Order: " << scheme_order << ", No. cycles: " << no_cycles << endl;
+
+          cout << "Scheme evaluation results:" << endl;
+          cout << "Order: " << scheme_order << ", No. cycles: " << no_cycles << endl;
+
+          print_sym_scheme(wfile, scheme, a_eval, b_eval);
+          print_sym_scheme(cout, scheme, a_eval, b_eval);
+        }
+        else
+        {
+          cout << "Scheme evaluation results:" << endl;
+          cout << "Order: " << scheme_order << ", No. cycles: " << no_cycles << endl;
+
+          print_sym_scheme(cout, scheme, a_eval, b_eval);
+        }
+      }
     }
 
-    cout << string(81, '=') << endl;
+    cout << string(64, '=') << endl;
   }
-  else if (method == "minimize_origin")
+  else if (method == "load")
   {
-    cout << "Running Numerical Minimization (minimize_origin) for order " << order << " and number of cycles q = " << no_cycles << endl;
-    cout << string(81, '=') << endl;
+    cout << "Running Symbolic Scheme up to order " << order << " and number of cycles q = " << no_cycles << endl;
+    cout << string(64, '=') << endl;
+    cout << "Loading the scheme from " << load_dir << endl;
 
-    // Add the additional weight
-    if (order == 4)
+    if (is_same_v<Scalar, double> || is_same_v<Scalar, complex<double>>)
     {
-      W_vec.push_back(wi[1]);
-    }
-    if (order == 6)
-    {
-      W_vec.push_back(wi[2]);
-    }
+      Scheme<double> scheme(load_dir, order, no_cycles, verbose);
 
-    NMinimization<Vec> minim(a_init, b_init, step, order, no_cycles, W_vec, n_iter, eps1, Ls);
-    MinResult<Vec> mini{minim.minimize_origin(lambda, ratio, nullptr, verbose)};
-
-    if (verbose)
-    {
-      mini.display();
-      cout << string(81, '-') << endl;
-    }
-
-    NScheme<Vec> scheme(6, no_cycles, mini.a_vec, mini.b_vec);
-    scheme.iterate();
-
-    if (!save_dir.empty())
-    {
-      string write_file = save_dir + "num_minimize_origin_q" + to_string(no_cycles) + ".out";
-      ofstream wfile(write_file, ios::app);
-      if (!wfile.is_open())
+      // Compute errors and efficiencies if evaluation vectors are provided
+      if (a_eval.size() > 0 && b_eval.size() > 0)
       {
-        runtime_error("Error opening output file: " + write_file);
+        scheme.display_err2(a_eval, b_eval);
+        cout << string(41, '-') << endl;
+        scheme.display_eff(a_eval, b_eval);
       }
-
-      print_num_min_origin(wfile, order, no_cycles, eps1, eps2, wi, step, n_iter, Ls, lambda, ratio, 1);
-      print_num_min_origin(cout, order, no_cycles, eps1, eps2, wi, step, n_iter, Ls, lambda, ratio, 1);
-
-      print_num_min1(wfile, scheme, a_init, b_init);
-      print_num_min1(cout, scheme, a_init, b_init);
-
-      wfile << "\n\n";
     }
-    else
+    else if (is_same_v<Scalar, long double> || is_same_v<Scalar, complex<long double>>)
     {
-      print_num_min_origin(cout, order, no_cycles, eps1, eps2, wi, step, n_iter, Ls, lambda, ratio, 1);
-      print_num_min1(cout, scheme, a_init, b_init);
+      Scheme<long double> scheme(load_dir, order, no_cycles, verbose);
+
+      // Compute errors and efficiencies if evaluation vectors are provided
+      if (a_eval.size() > 0 && b_eval.size() > 0)
+      {
+        if (!save_dir.empty())
+        {
+          string write_file = save_dir + "sym_scheme_q" + to_string(no_cycles) + ".out";
+          ofstream wfile(write_file, ios::app);
+          if (!wfile.is_open())
+          {
+            runtime_error("Error opening output file: " + write_file);
+          }
+          wfile << "Scheme evaluation results:" << endl;
+          wfile << "Order: " << scheme_order << ", No. cycles: " << no_cycles << endl;
+
+          cout << "Scheme evaluation results:" << endl;
+          cout << "Order: " << scheme_order << ", No. cycles: " << no_cycles << endl;
+
+          print_sym_scheme(wfile, scheme, a_eval, b_eval);
+          print_sym_scheme(cout, scheme, a_eval, b_eval);
+        }
+        else
+        {
+          cout << "Scheme evaluation results:" << endl;
+          cout << "Order: " << scheme_order << ", No. cycles: " << no_cycles << endl;
+
+          print_sym_scheme(cout, scheme, a_eval, b_eval);
+        }
+      }
     }
 
-    cout << string(81, '=') << endl;
+    cout << string(64, '=') << endl;
   }
-  else if (method == "min_twostep")
+  else if (method == "load_iterate")
   {
-    cout << "Running Numerical Minimization (min_twostep) for order " << order << " and number of cycles q = " << no_cycles << endl;
-    cout << string(81, '=') << endl;
+    cout << "Running Symbolic Scheme up to order " << order << " and number of cycles q = " << no_cycles << endl;
+    cout << string(64, '=') << endl;
 
-    NMinimization<Vec> minim(a_init, b_init, step, order, no_cycles, W_vec, n_iter, eps1, Ls);
-    MinResult<Vec> mini{minim.min_twostep(lambda, &eps2, verbose, freeze)};
-
-    if (verbose)
+    cout << "Loading the scheme from " << load_dir << endl;
+    if (is_same_v<Scalar, double> || is_same_v<Scalar, complex<double>>)
     {
-      mini.display();
-      cout << string(81, '-') << endl;
-    }
+      Scheme<double> scheme(load_dir, order, no_cycles, verbose);
 
-    NScheme<Vec> scheme(6, no_cycles, mini.a_vec, mini.b_vec);
-    scheme.iterate();
+      cout << "Iterating " << 2 * steps << " cycles:" << endl;
+      scheme.q += 2 * steps;
+      no_cycles += 2 * steps;
+      scheme.transform(scheme.q);
+      scheme.iterate(steps);
 
-    if (!save_dir.empty())
-    {
-      string write_file = save_dir + "num_min_twostep_q" + to_string(no_cycles) + ".out";
-      ofstream wfile(write_file, ios::app);
-      if (!wfile.is_open())
+      // Save the scheme if a save directory is provided
+      if (!save_dir.empty())
       {
-        runtime_error("Error opening output file: " + write_file);
-      }
-
-      print_num_min(wfile, order, no_cycles, eps1, eps2, wi, step, n_iter, Ls, lambda, 2);
-      print_num_min(cout, order, no_cycles, eps1, eps2, wi, step, n_iter, Ls, lambda, 2);
-
-      print_num_min1(wfile, scheme, a_init, b_init);
-      print_num_min1(cout, scheme, a_init, b_init);
-
-      wfile << "\n\n";
-    }
-    else
-    {
-      print_num_min(cout, order, no_cycles, eps1, eps2, wi, step, n_iter, Ls, lambda, 2);
-
-      print_num_min1(cout, scheme, a_init, b_init);
-    }
-
-    cout << string(81, '=') << endl;
-  }
-  else if (method == "min_twostep_origin")
-  {
-    cout << "Running Numerical Minimization (min_twostep_origin) for order " << order << " and number of cycles q = " << no_cycles << endl;
-    cout << string(81, '=') << endl;
-
-    // Add the additional weight
-    if (order == 4)
-    {
-      W_vec.push_back(wi[1]);
-    }
-    if (order == 6)
-    {
-      W_vec.push_back(wi[2]);
-    }
-
-    NMinimization<Vec> minim(a_init, b_init, step, order, no_cycles, W_vec, n_iter, eps1, Ls);
-    MinResult<Vec> mini{minim.min_twostep_origin(lambda, ratio, &eps2, verbose, freeze)};
-
-    if (verbose)
-    {
-      mini.display();
-      cout << string(81, '-') << endl;
-    }
-
-    NScheme<Vec> scheme(6, no_cycles, mini.a_vec, mini.b_vec);
-    scheme.iterate();
-
-    if (!save_dir.empty())
-    {
-      string write_file = save_dir + "num_min_twostep_origin_q" + to_string(no_cycles) + ".out";
-      ofstream wfile(write_file, ios::app);
-      if (!wfile.is_open())
-      {
-        runtime_error("Error opening output file: " + write_file);
-      }
-
-      print_num_min_origin(wfile, order, no_cycles, eps1, eps2, wi, step, n_iter, Ls, lambda, ratio, 2);
-      print_num_min_origin(cout, order, no_cycles, eps1, eps2, wi, step, n_iter, Ls, lambda, ratio, 2);
-
-      print_num_min1(wfile, scheme, a_init, b_init);
-      print_num_min1(cout, scheme, a_init, b_init);
-
-      wfile << "\n\n";
-    }
-    else
-    {
-      print_num_min_origin(cout, order, no_cycles, eps1, eps2, wi, step, n_iter, Ls, lambda, ratio, 2);
-
-      print_num_min1(cout, scheme, a_init, b_init);
-    }
-
-    cout << string(81, '=') << endl;
-  }
-  else if (method == "find")
-  {
-    cout << "Running Numerical Minimization (find, " << steps << ") for order " << order << " and number of cycles q = " << no_cycles << endl;
-    cout << string(88, '=') << endl;
-
-    NMinimization<Vec> minim(step, order, no_cycles, W_vec, n_iter, eps1, Ls);
-    pair<array<vector<Vec>, 4>, vector<int>> minima;
-
-    if (steps == 1)
-    {
-      if (mus.empty())
-      {
-        minima = minim.find(N, lambda, steps, mu, sigma, nullptr, true, verbose, tol, freeze);
-      }
-      else
-      {
-        minima = minim.find(N, lambda, steps, mus, sigma, nullptr, true, verbose, tol, freeze);
+        cout << "Saving Scheme to " << save_dir << "saved_schemes/" << endl;
+        scheme.save(save_dir + "saved_schemes/");
       }
     }
-    else if (steps == 2)
+    else if (is_same_v<Scalar, long double> || is_same_v<Scalar, complex<long double>>)
     {
-      if (mus.empty())
+      Scheme<long double> scheme(load_dir, order, no_cycles, verbose);
+
+      cout << "Iterating " << 2 * steps << " cycles:" << endl;
+      scheme.q += 2 * steps;
+      no_cycles += 2 * steps;
+      scheme.transform(scheme.q);
+      scheme.iterate(steps);
+
+      // Save the scheme if a save directory is provided
+      if (!save_dir.empty())
       {
-        minima = minim.find(N, lambda, steps, mu, sigma, &eps2, true, verbose, tol, freeze);
-      }
-      else
-      {
-        minima = minim.find(N, lambda, steps, mus, sigma, &eps2, true, verbose, tol, freeze);
+        cout << "Saving Scheme to " << save_dir << "saved_schemes/" << endl;
+        scheme.save(save_dir + "saved_schemes/");
       }
     }
 
-    array<vector<Vec>, 4> ab_vecs{minima.first};
-
-    int sum_convs{accumulate(minima.second.begin(), minima.second.end(), 0)};
-    // Write to file if specified otherwise just output to terminal
-    if (!save_dir.empty())
-    {
-      string write_file = save_dir + "num_minim_find_q" + to_string(no_cycles) + ".out";
-      ofstream wfile(write_file, ios::app);
-      if (!wfile.is_open())
-      {
-        runtime_error("Error opening output file: " + write_file);
-      }
-
-      print_num_find(cout, order, no_cycles, eps1, eps2, wi, step, n_iter, Ls, lambda, N, steps, mu, mus, sigma, sum_convs, tol);
-      print_num_find(wfile, order, no_cycles, eps1, eps2, wi, step, n_iter, Ls, lambda, N, steps, mu, mus, sigma, sum_convs, tol);
-
-      double ratioN;
-      RealT eff2;
-      RealT eff4;
-      RealT eff6;
-      int tracker{0};
-      for (size_t i{0}; i < ab_vecs[0].size(); ++i)
-      {
-        NScheme<Vec> scheme(6, no_cycles, ab_vecs[0][i], ab_vecs[2][i]);
-        scheme.iterate();
-
-        ratioN = (static_cast<double>(minima.second[i]) / static_cast<double>(N)) * 100.0;
-        eff2 = 1 / (pow(no_cycles, 2) * sqrt(scheme.err2(2)));
-        eff4 = 1 / (pow(no_cycles, 4) * sqrt(scheme.err2(4)));
-        eff6 = 1 / (pow(no_cycles, 6) * sqrt(scheme.err2(6)));
-
-        bool pass{true};
-        if (order == 4 && scheme.err2(2) > threshold)
-        {
-          pass = false;
-        }
-        else if (order == 6 && scheme.err2(2) > threshold && scheme.err2(4) > threshold)
-        {
-          pass = false;
-        }
-
-        if (pass)
-        {
-          tracker += 1;
-          sum_convs -= minima.second[i];
-
-          print_find1(cout, tracker, ratioN, eff2, eff4, eff6);
-          print_find1(wfile, tracker, ratioN, eff2, eff4, eff6);
-
-          print_find2(cout, ab_vecs[0][i], ab_vecs[2][i]);
-          print_find2(wfile, ab_vecs[0][i], ab_vecs[2][i]);
-        }
-      }
-
-      cout << "Ratio of discarded samples: " << fixed << setprecision(2) << (static_cast<double>(sum_convs) / static_cast<double>(N)) * 100.0 << "%" << endl;
-      cout << string(38, '-') << endl;
-
-      wfile << "Ratio of discarded samples: " << fixed << setprecision(2) << (static_cast<double>(sum_convs) / static_cast<double>(N)) * 100.0 << "%" << endl;
-      wfile << string(38, '-') << endl;
-
-      wfile << "\n\n";
-
-      wfile.close();
-    }
-    else
-    {
-
-      print_num_find(cout, order, no_cycles, eps1, eps2, wi, step, n_iter, Ls, lambda, N, steps, mu, mus, sigma, sum_convs, tol);
-
-      double ratioN;
-      RealT eff2;
-      RealT eff4;
-      RealT eff6;
-      int tracker{0};
-      for (size_t i{0}; i < ab_vecs[0].size(); ++i)
-      {
-        NScheme<Vec> scheme(6, no_cycles, ab_vecs[0][i], ab_vecs[2][i]);
-        scheme.iterate();
-
-        ratioN = (static_cast<double>(minima.second[i]) / static_cast<double>(N)) * 100.0;
-        eff2 = 1 / (pow(no_cycles, 2) * sqrt(scheme.err2(2)));
-        eff4 = 1 / (pow(no_cycles, 4) * sqrt(scheme.err2(4)));
-        eff6 = 1 / (pow(no_cycles, 6) * sqrt(scheme.err2(6)));
-
-        bool pass{true};
-        if (order == 4 && scheme.err2(2) > threshold)
-        {
-          pass = false;
-        }
-        else if (order == 6 && scheme.err2(2) > threshold && scheme.err2(4) > threshold)
-        {
-          pass = false;
-        }
-
-        if (pass)
-        {
-          tracker += 1;
-          sum_convs -= minima.second[i];
-
-          print_find1(cout, tracker, ratioN, eff2, eff4, eff6);
-          print_find2(cout, ab_vecs[0][i], ab_vecs[2][i]);
-        }
-      }
-
-      cout << "Ratio of discarded samples: " << fixed << setprecision(2) << (static_cast<double>(sum_convs) / static_cast<double>(N)) * 100.0 << "%" << endl;
-      cout << string(38, '-') << endl;
-    }
-    cout << string(88, '=') << endl;
-  }
-  else if (method == "find_origin")
-  {
-    cout << "Running Numerical Minimization (find_origin, " << steps << ") for order " << order << " and number of cycles q = " << no_cycles << endl;
-    cout << string(88, '=') << endl;
-
-    // Add the additional weight
-    if (order == 4)
-    {
-      W_vec.push_back(wi[1]);
-    }
-    if (order == 6)
-    {
-      W_vec.push_back(wi[2]);
-    }
-
-    NMinimization<Vec> minim(step, order, no_cycles, W_vec, n_iter, eps1, Ls);
-    pair<array<vector<Vec>, 4>, vector<int>> minima;
-
-    if (steps == 1)
-    {
-      if (mus.empty())
-      {
-        minima = minim.find_origin(N, lambda, ratio, steps, mu, sigma, nullptr, true, verbose, tol, freeze);
-      }
-      else
-      {
-        minima = minim.find_origin(N, lambda, ratio, steps, mus, sigma, nullptr, true, verbose, tol, freeze);
-      }
-    }
-    else if (steps == 2)
-    {
-      if (mus.empty())
-      {
-        minima = minim.find_origin(N, lambda, ratio, steps, mu, sigma, &eps2, true, verbose, tol, freeze);
-      }
-      else
-      {
-        minima = minim.find_origin(N, lambda, ratio, steps, mus, sigma, &eps2, true, verbose, tol, freeze);
-      }
-    }
-
-    array<vector<Vec>, 4> ab_vecs{minima.first};
-
-    int sum_convs{accumulate(minima.second.begin(), minima.second.end(), 0)};
-    // Write to file if specified otherwise just output to terminal
-    if (!save_dir.empty())
-    {
-      string write_file = save_dir + "num_minim_find_origin_q" + to_string(no_cycles) + ".out";
-      ofstream wfile(write_file, ios::app);
-      if (!wfile.is_open())
-      {
-        runtime_error("Error opening output file: " + write_file);
-      }
-
-      print_num_find_origin(cout, order, no_cycles, eps1, eps2, wi, step, n_iter, Ls, lambda, ratio, N, steps, mu, mus, sigma, sum_convs, tol);
-      print_num_find_origin(wfile, order, no_cycles, eps1, eps2, wi, step, n_iter, Ls, lambda, ratio, N, steps, mu, mus, sigma, sum_convs, tol);
-
-      double ratioN;
-      RealT eff2;
-      RealT eff4;
-      RealT eff6;
-      int tracker{0};
-      for (size_t i{0}; i < ab_vecs[0].size(); ++i)
-      {
-        NScheme<Vec> scheme(6, no_cycles, ab_vecs[0][i], ab_vecs[2][i]);
-        scheme.iterate();
-
-        ratioN = (static_cast<double>(minima.second[i]) / static_cast<double>(N)) * 100.0;
-        eff2 = 1 / (pow(no_cycles, 2) * sqrt(scheme.err2(2)));
-        eff4 = 1 / (pow(no_cycles, 4) * sqrt(scheme.err2(4)));
-        eff6 = 1 / (pow(no_cycles, 6) * sqrt(scheme.err2(6)));
-
-        bool pass{true};
-        if (order == 4 && scheme.err2(2) > threshold)
-        {
-          pass = false;
-        }
-        else if (order == 6 && scheme.err2(2) > threshold && scheme.err2(4) > threshold)
-        {
-          pass = false;
-        }
-
-        if (pass)
-        {
-          tracker += 1;
-          sum_convs -= minima.second[i];
-
-          print_find1(cout, tracker, ratioN, eff2, eff4, eff6);
-          print_find1(wfile, tracker, ratioN, eff2, eff4, eff6);
-
-          print_find2(cout, ab_vecs[0][i], ab_vecs[2][i]);
-          print_find2(wfile, ab_vecs[0][i], ab_vecs[2][i]);
-        }
-      }
-
-      cout << "Ratio of discarded samples: " << fixed << setprecision(2) << (static_cast<double>(sum_convs) / static_cast<double>(N)) * 100.0 << "%" << endl;
-      cout << string(38, '-') << endl;
-
-      wfile << "Ratio of discarded samples: " << fixed << setprecision(2) << (static_cast<double>(sum_convs) / static_cast<double>(N)) * 100.0 << "%" << endl;
-      wfile << string(38, '-') << endl;
-
-      wfile << "\n\n";
-
-      wfile.close();
-    }
-    else
-    {
-
-      print_num_find(cout, order, no_cycles, eps1, eps2, wi, step, n_iter, Ls, lambda, N, steps, mu, mus, sigma, sum_convs, tol);
-
-      double ratioN;
-      RealT eff2;
-      RealT eff4;
-      RealT eff6;
-      int tracker{0};
-      for (size_t i{0}; i < ab_vecs[0].size(); ++i)
-      {
-        NScheme<Vec> scheme(6, no_cycles, ab_vecs[0][i], ab_vecs[2][i]);
-        scheme.iterate();
-
-        ratioN = (static_cast<double>(minima.second[i]) / static_cast<double>(N)) * 100.0;
-        eff2 = 1 / (pow(no_cycles, 2) * sqrt(scheme.err2(2)));
-        eff4 = 1 / (pow(no_cycles, 4) * sqrt(scheme.err2(4)));
-        eff6 = 1 / (pow(no_cycles, 6) * sqrt(scheme.err2(6)));
-
-        bool pass{true};
-        if (order == 4 && scheme.err2(2) > threshold)
-        {
-          pass = false;
-        }
-        else if (order == 6 && scheme.err2(2) > threshold && scheme.err2(4) > threshold)
-        {
-          pass = false;
-        }
-
-        if (pass)
-        {
-          tracker += 1;
-          sum_convs -= minima.second[i];
-
-          print_find1(cout, tracker, ratioN, eff2, eff4, eff6);
-          print_find2(cout, ab_vecs[0][i], ab_vecs[2][i]);
-        }
-      }
-
-      cout << "Ratio of discarded samples: " << fixed << setprecision(2) << (static_cast<double>(sum_convs) / static_cast<double>(N)) * 100.0 << "%" << endl;
-      cout << string(38, '-') << endl;
-    }
-    cout << string(88, '=') << endl;
+    cout << string(64, '=') << endl;
   }
   else
   {
@@ -3353,7 +3966,8 @@ void IO::num_minim()
   }
 }
 
-// Numerical Scheme
+
+// Numeric Scheme
 // Computes the errors and efficiencies of the scheme for the provided a_vec and b_vec
 template <typename Scalar>
 void IO::num_scheme()
@@ -3402,7 +4016,30 @@ void IO::num_scheme()
   // Close the read_file
   rfile.close();
 
-  cout << "Running Numerical Scheme for order " << order << " and number of cycles q = " << no_cycles << endl;
+  // Determine the scheme order based on the number of cycles (Only for printing)
+  int scheme_order;
+  if (no_cycles <= 2)
+  {
+    scheme_order = 2;
+  }
+  else if (no_cycles <= 6)
+  {
+    scheme_order = 4;
+  }
+  else if (no_cycles <= 14)
+  {
+    scheme_order = 6;
+  }
+  else if (no_cycles <= 30)
+  {
+    scheme_order = 8;
+  }
+  else
+  {
+    scheme_order = 10;
+  }
+
+  cout << "Running Numeric Scheme for order " << order << " and number of cycles q = " << no_cycles << endl;
   cout << string(64, '=') << endl;
 
   NScheme<Vec> scheme(order, no_cycles, a_eval, b_eval, verbose);
@@ -3417,10 +4054,10 @@ void IO::num_scheme()
       runtime_error("Error opening output file: " + write_file);
     }
     wfile << "Scheme evaluation results:" << endl;
-    wfile << "Order: " << order << ", No. cycles: " << no_cycles << endl;
+    wfile << "Order: " << scheme_order << ", No. cycles: " << no_cycles << endl;
 
     cout << "Scheme evaluation results:" << endl;
-    cout << "Order: " << order << ", No. cycles: " << no_cycles << endl;
+    cout << "Order: " << scheme_order << ", No. cycles: " << no_cycles << endl;
 
     print_num_scheme(wfile, scheme);
     print_num_scheme(cout, scheme);
@@ -3428,13 +4065,15 @@ void IO::num_scheme()
   else
   {
     cout << "Scheme evaluation results:" << endl;
-    cout << "Order: " << order << ", No. cycles: " << no_cycles << endl;
+    cout << "Order: " << scheme_order << ", No. cycles: " << no_cycles << endl;
 
     print_num_scheme(cout, scheme);
   }
 
   cout << string(64, '=') << endl;
 }
+
+// ** Minimizations **
 
 
 // Symbolic Minimization
@@ -3474,7 +4113,6 @@ void IO::sym_minim()
   RealT threshold{1e-18}; // Threshold to pass the minimal error
   // Normal distribution parameters
   Scalar mu;
-  vector<Scalar> mus;
   Scalar sigma;
 
   // Sort the found minima accoring to Chi2
@@ -3572,10 +4210,6 @@ void IO::sym_minim()
     {
       mu = parse_value<Scalar>(value);
     }
-    else if (key == "mus")
-    {
-      mus = parse_list<vector<Scalar>>(value);
-    }
     else if (key == "sigma")
     {
       sigma = parse_value<Scalar>(value);
@@ -3600,7 +4234,9 @@ void IO::sym_minim()
   rfile.close();
 
   // Fill the weights vector according to order
-  vector<RealT> W_vec{{wi[0], wi[0]}};
+  std::vector<RealT> W_vec;
+  W_vec.push_back(wi[0]);
+  W_vec.push_back(wi[0]);
   if (order == 4)
   {
     for (size_t i{0}; i < 6; ++i)
@@ -3844,25 +4480,11 @@ void IO::sym_minim()
 
       if (steps == 1)
       {
-        if (mus.empty())
-        {
-          minima = minim.find(N, lambda, steps, mu, sigma, nullptr, true, verbose, tol, freeze);
-        }
-        else
-        {
-          minima = minim.find(N, lambda, steps, mus, sigma, nullptr, true, verbose, tol, freeze);
-        }
+        minima = minim.find(N, lambda, steps, mu, sigma, nullptr, true, verbose, tol, freeze);
       }
       else if (steps == 2)
       {
-        if (mus.empty())
-        {
-          minima = minim.find(N, lambda, steps, mu, sigma, &eps2, true, verbose, tol, freeze);
-        }
-        else
-        {
-          minima = minim.find(N, lambda, steps, mus, sigma, &eps2, true, verbose, tol, freeze);
-        }
+        minima = minim.find(N, lambda, steps, mu, sigma, &eps2, true, verbose, tol, freeze);
       }
     }
     else if constexpr (is_same_v<Scalar, long double> || is_same_v<Scalar, complex<long double>>)
@@ -3882,25 +4504,11 @@ void IO::sym_minim()
 
       if (steps == 1)
       {
-        if (mus.empty())
-        {
-          minima = minim.find(N, lambda, steps, mu, sigma, nullptr, true, verbose, tol, freeze);
-        }
-        else
-        {
-          minima = minim.find(N, lambda, steps, mus, sigma, nullptr, true, verbose, tol, freeze);
-        }
+        minima = minim.find(N, lambda, steps, mu, sigma, nullptr, true, verbose, tol, freeze);
       }
       else if (steps == 2)
       {
-        if (mus.empty())
-        {
-          minima = minim.find(N, lambda, steps, mu, sigma, &eps2, true, verbose, tol, freeze);
-        }
-        else
-        {
-          minima = minim.find(N, lambda, steps, mus, sigma, &eps2, true, verbose, tol, freeze);
-        }
+        minima = minim.find(N, lambda, steps, mu, sigma, &eps2, true, verbose, tol, freeze);
       }
     }
 
@@ -3917,13 +4525,14 @@ void IO::sym_minim()
         runtime_error("Error opening output file: " + write_file);
       }
 
-      print_sym_find(cout, order, no_cycles, eps1, eps2, wi, n_iter, Ls, lambda, N, steps, mu, mus, sigma, sum_convs, tol);
-      print_sym_find(wfile, order, no_cycles, eps1, eps2, wi, n_iter, Ls, lambda, N, steps, mu, mus, sigma, sum_convs, tol);
+      print_sym_find(cout, order, no_cycles, eps1, eps2, wi, n_iter, Ls, lambda, N, steps, mu, sigma, sum_convs, tol);
+      print_sym_find(wfile, order, no_cycles, eps1, eps2, wi, n_iter, Ls, lambda, N, steps, mu, sigma, sum_convs, tol);
 
       double ratio;
       RealT eff2;
       RealT eff4;
       RealT eff6;
+      RealT eff8;
       int tracker{0};
       for (size_t i{0}; i < ab_vecs[0].size(); ++i)
       {
@@ -3934,6 +4543,7 @@ void IO::sym_minim()
         eff2 = 1 / (pow(no_cycles, 2) * sqrt(scheme.err2(2)));
         eff4 = 1 / (pow(no_cycles, 4) * sqrt(scheme.err2(4)));
         eff6 = 1 / (pow(no_cycles, 6) * sqrt(scheme.err2(6)));
+        eff8 = 1 / (pow(no_cycles, 8) * sqrt(scheme.err2(8)));
 
         bool pass{true};
         if (order == 4 && scheme.err2(2) > threshold)
@@ -3950,8 +4560,8 @@ void IO::sym_minim()
           tracker += 1;
           sum_convs -= minima.second[i];
 
-          print_find1(cout, tracker, ratio, eff2, eff4, eff6);
-          print_find1(wfile, tracker, ratio, eff2, eff4, eff6);
+          print_find1(cout, tracker, ratio, eff2, eff4, eff6, eff8);
+          print_find1(wfile, tracker, ratio, eff2, eff4, eff6, eff8);
 
           print_find2(cout, ab_vecs[0][i], ab_vecs[2][i]);
           print_find2(wfile, ab_vecs[0][i], ab_vecs[2][i]);
@@ -3971,12 +4581,13 @@ void IO::sym_minim()
     else
     {
 
-      print_sym_find(cout, order, no_cycles, eps1, eps2, wi, n_iter, Ls, lambda, N, steps, mu, mus, sigma, sum_convs, tol);
+      print_sym_find(cout, order, no_cycles, eps1, eps2, wi, n_iter, Ls, lambda, N, steps, mu, sigma, sum_convs, tol);
 
       double ratio;
       RealT eff2;
       RealT eff4;
       RealT eff6;
+      RealT eff8;
       int tracker{0};
       for (size_t i{0}; i < ab_vecs[0].size(); ++i)
       {
@@ -3987,6 +4598,7 @@ void IO::sym_minim()
         eff2 = 1 / (pow(no_cycles, 2) * sqrt(scheme.err2(2)));
         eff4 = 1 / (pow(no_cycles, 4) * sqrt(scheme.err2(4)));
         eff6 = 1 / (pow(no_cycles, 6) * sqrt(scheme.err2(6)));
+        eff8 = 1 / (pow(no_cycles, 8) * sqrt(scheme.err2(8)));
 
         bool pass{true};
         if (order == 4 && scheme.err2(2) > threshold)
@@ -4003,7 +4615,7 @@ void IO::sym_minim()
           tracker += 1;
           sum_convs -= minima.second[i];
 
-          print_find1(cout, tracker, ratio, eff2, eff4, eff6);
+          print_find1(cout, tracker, ratio, eff2, eff4, eff6, eff8);
           print_find2(cout, ab_vecs[0][i], ab_vecs[2][i]);
         }
       }
@@ -4019,33 +4631,56 @@ void IO::sym_minim()
   }
 }
 
-// Symbolic Scheme computation
-// Methods: - scratch: compute scheme from scratch
-//          - load: load scheme from file
-//          - load_iterate: load scheme from file and iterate for 2 cycles
-// Optional methods (Execute if provided): - Compute errors and efficiencies (needs a_vec and b_vec)
-//                                         - Save the scheme (needs a save folder)
+
+// Numeric Minimization
+// Methods: - minimize: minimize the computed scheme manifold once using initial vector a_vec, b_vec
+//          - min_twostep: minimize the computed scheme manifold twice (constraint minimization in the 2. step)
+//          - find: find as many minima for the computed scheme manifold
 template <typename Scalar>
-void IO::sym_scheme()
+void IO::num_minim()
 {
   // Determine the Vec type from Scalar
   using Vec = Eigen::Matrix<Scalar, Eigen::Dynamic, 1>;
+  using RealT = typename Eigen::NumTraits<typename Vec::Scalar>::Real;
 
   // Specific parameters
-  string method; // Method to execute (scratch, load, load_iterate)
+  string method; // Method to use for minimization (minimize, min_twostep, find)
 
-  // ai and bi evaluation vectors
-  Vec a_eval;
-  Vec b_eval;
+  // Initial ai and bi vectors
+  Vec a_init;
+  Vec b_init;
 
-  // Load directory
-  string load_dir;
+  // Minimization hyperparameters
+  array<RealT, 4> eps1;            // Convergence criteria for the 1. step (eps1, eps2, eps3, eps4)
+  array<RealT, 4> eps2;            // Convergence criteria for the 2. step (eps1, eps2, eps3, eps4)
+  vector<RealT> wi;                // Weigths per order (w2, w4, w6, ...)
+  RealT step{1e-5};                // Numeric derivative step
+  int n_iter{500};                 // Number of iterations before quitting if convergence isn't achieved
+  array<RealT, 2> Ls{{9.0, 11.0}}; // L_up, L_down
+  RealT lambda{0.25};              // Damping parameter
 
-  // Iteration steps
-  int steps;
+  // Minima finder parameters
+  int N;                  // Number of initial conditions
+  int steps;              // Number of steps (1: minimize, 2: min_twostep)
+  RealT threshold{1e-18}; // Threshold to pass the minimal error
+  // Normal distribution parameters
+  Scalar mu;
+  Scalar sigma;
 
-  // Verbose option (0: nothing, 1: cycles, 2: values)
-  char verbose;
+  // Sort the found minima accoring to Chi2
+  bool bsort{false};
+
+  // Verbose option (false: nothing, true: Change of ai, bi during iterations)
+  bool verbose;
+
+  // Minima comparison parameters
+  RealT tol{1e-15};
+
+  // Hessian freeze option
+  bool freeze{false};
+
+  // Ratio for the origin methods
+  RealT ratio{0.0};
 
   // Read the required parameters for the desired method
   string line;
@@ -4066,240 +4701,465 @@ void IO::sym_scheme()
     {
       method = value;
     }
-    // Evaluation vectors for ai and bi
-    else if (key == "a_eval")
+    // Initial ai and bi vectors
+    else if (key == "a_init")
     {
-      a_eval = parse_list<Vec>(value);
+      a_init = parse_list<Vec>(value);
     }
-    else if (key == "b_eval")
+    else if (key == "b_init")
     {
-      b_eval = parse_list<Vec>(value);
+      b_init = parse_list<Vec>(value);
     }
-    // Load directory
-    else if (key == "load_dir")
+    // Minimization hyperparameters
+    else if (key == "eps1")
     {
-      load_dir = value;
+      eps1 = parse_list<array<RealT, 4>>(value);
     }
-    // Iteration steps
+    else if (key == "eps2")
+    {
+      eps2 = parse_list<array<RealT, 4>>(value);
+    }
+    else if (key == "wi")
+    {
+      wi = parse_list<vector<RealT>>(value);
+    }
+    else if (key == "step")
+    {
+      step = parse_value<RealT>(value);
+    }
+    else if (key == "n_iter")
+    {
+      n_iter = stoi(value);
+    }
+    else if (key == "Ls")
+    {
+      Ls = parse_list<array<RealT, 2>>(value);
+    }
+    else if (key == "lambda")
+    {
+      lambda = parse_value<RealT>(value);
+    }
+    else if (key == "verbose")
+    {
+      verbose = stoi(value);
+    }
+    // Minima finder parameters
+    else if (key == "N")
+    {
+      N = stoi(value);
+    }
     else if (key == "steps")
     {
       steps = stoi(value);
     }
-    // Verbose option
-    else if (key == "verbose")
+    else if (key == "threshold")
     {
-      verbose = stoi(value);
+      threshold = parse_value<RealT>(value);
+    }
+    else if (key == "mu")
+    {
+      mu = parse_value<Scalar>(value);
+    }
+    else if (key == "sigma")
+    {
+      sigma = parse_value<Scalar>(value);
+    }
+    else if (key == "bsort")
+    {
+      bsort = stoi(value);
+    }
+    // Minima comparison parameters
+    else if (key == "tol")
+    {
+      tol = parse_value<RealT>(value);
+    }
+    // Hessian freeze option
+    else if (key == "freeze")
+    {
+      freeze = stoi(value);
+    }
+    else if (key == "ratio")
+    {
+      ratio = parse_value<RealT>(value);
     }
   }
 
   // Close the read_file
   rfile.close();
 
-  if (method == "scratch")
+  // Fill the weights vector according to order
+  std::vector<RealT> W_vec;
+  W_vec.push_back(wi[0]);
+  W_vec.push_back(wi[0]);
+  if (order == 4)
   {
-    cout << "Running Symbolic Scheme up to order " << order << " and number of cycles q = " << no_cycles << endl;
-    cout << string(64, '=') << endl;
-    cout << "Computing the scheme from scratch:" << endl;
-
-    if (is_same_v<Scalar, double> || is_same_v<Scalar, complex<double>>)
+    for (size_t i{0}; i < 6; ++i)
     {
-      Scheme<double> scheme(order, no_cycles, verbose);
-      scheme.iterate();
-
-      scheme.coefs.alpha.display_poly();
-      scheme.coefs.beta.display_poly();
-
-      if (no_cycles > 2)
-      {
-        for (size_t c{0}; c < scheme.coefs.gammas.size(); ++c)
-        {
-          scheme.coefs.gammas[c].display_poly();
-        }
-      }
-      if (no_cycles > 6)
-      {
-        for (size_t c{0}; c < scheme.coefs.deltas.size(); ++c)
-        {
-          //scheme.coefs.deltas[c].display_poly();
-        }
-      }
-
-      // Save the scheme if a save directory is provided
-      if (!save_dir.empty())
-      {
-        cout << "Saving Scheme to " << save_dir << "saved_schemes/" << endl;
-        scheme.save(save_dir + "saved_schemes/");
-      }
-
-      // Compute errors and efficiencies if evaluation vectors are provided
-      if (a_eval.size() > 0 && b_eval.size() > 0)
-      {
-        if (!save_dir.empty())
-        {
-          string write_file = save_dir + "sym_scheme_q" + to_string(no_cycles) + ".out";
-          ofstream wfile(write_file, ios::app);
-          if (!wfile.is_open())
-          {
-            runtime_error("Error opening output file: " + write_file);
-          }
-          wfile << "Scheme evaluation results:" << endl;
-          wfile << "Order: " << order << ", No. cycles: " << no_cycles << endl;
-
-          cout << "Scheme evaluation results:" << endl;
-          cout << "Order: " << order << ", No. cycles: " << no_cycles << endl;
-
-          print_sym_scheme(wfile, scheme, a_eval, b_eval);
-          print_sym_scheme(cout, scheme, a_eval, b_eval);
-        }
-        else
-        {
-          cout << "Scheme evaluation results:" << endl;
-          cout << "Order: " << order << ", No. cycles: " << no_cycles << endl;
-          
-          print_sym_scheme(cout, scheme, a_eval, b_eval);
-        }
-      }
+      W_vec.push_back(wi[1]);
     }
-    else if (is_same_v<Scalar, long double> || is_same_v<Scalar, complex<long double>>)
-    {
-      Scheme<long double> scheme(order, no_cycles, verbose);
-      scheme.iterate();
-
-      // Save the scheme if a save directory is provided
-      if (!save_dir.empty())
-      {
-        cout << "Saving Scheme to " << save_dir << "saved_schemes/" << endl;
-        scheme.save(save_dir + "saved_schemes/");
-      }
-
-      // Compute errors and efficiencies if evaluation vectors are provided
-      if (a_eval.size() > 0 && b_eval.size() > 0)
-      {
-        if (!save_dir.empty())
-        {
-          string write_file = save_dir + "sym_scheme_q" + to_string(no_cycles) + ".out";
-          ofstream wfile(write_file, ios::app);
-          if (!wfile.is_open())
-          {
-            runtime_error("Error opening output file: " + write_file);
-          }
-          wfile << "Scheme evaluation results:" << endl;
-          wfile << "Order: " << order << ", No. cycles: " << no_cycles << endl;
-
-          cout << "Scheme evaluation results:" << endl;
-          cout << "Order: " << order << ", No. cycles: " << no_cycles << endl;
-
-          print_sym_scheme(wfile, scheme, a_eval, b_eval);
-          print_sym_scheme(cout, scheme, a_eval, b_eval);
-        }
-        else
-        {
-          cout << "Scheme evaluation results:" << endl;
-          cout << "Order: " << order << ", No. cycles: " << no_cycles << endl;
-
-          print_sym_scheme(cout, scheme, a_eval, b_eval);
-        }
-      }
-    }
-
-    cout << string(64, '=') << endl;
   }
-  else if (method == "load")
+  if (order == 6)
   {
-    cout << "Running Symbolic Scheme up to order " << order << " and number of cycles q = " << no_cycles << endl;
-    cout << string(64, '=') << endl;
-    cout << "Loading the scheme from " << load_dir << endl;
-
-    if (is_same_v<Scalar, double> || is_same_v<Scalar, complex<double>>)
+    for (size_t i{0}; i < 6; ++i)
     {
-      Scheme<double> scheme(load_dir, order, no_cycles, verbose);
-
-      // Compute errors and efficiencies if evaluation vectors are provided
-      if (a_eval.size() > 0 && b_eval.size() > 0)
-      {
-        scheme.display_err2(a_eval, b_eval);
-        cout << string(41, '-') << endl;
-        scheme.display_eff(a_eval, b_eval);
-      }
+      W_vec.push_back(wi[1]);
     }
-    else if (is_same_v<Scalar, long double> || is_same_v<Scalar, complex<long double>>)
+    for (size_t i{0}; i < 18; ++i)
     {
-      Scheme<long double> scheme(load_dir, order, no_cycles, verbose);
-
-      // Compute errors and efficiencies if evaluation vectors are provided
-      if (a_eval.size() > 0 && b_eval.size() > 0)
-      {
-        if (!save_dir.empty())
-        {
-          string write_file = save_dir + "sym_scheme_q" + to_string(no_cycles) + ".out";
-          ofstream wfile(write_file, ios::app);
-          if (!wfile.is_open())
-          {
-            runtime_error("Error opening output file: " + write_file);
-          }
-          wfile << "Scheme evaluation results:" << endl;
-          wfile << "Order: " << order << ", No. cycles: " << no_cycles << endl;
-
-          cout << "Scheme evaluation results:" << endl;
-          cout << "Order: " << order << ", No. cycles: " << no_cycles << endl;
-
-          print_sym_scheme(wfile, scheme, a_eval, b_eval);
-          print_sym_scheme(cout, scheme, a_eval, b_eval);
-        }
-        else
-        {
-          cout << "Scheme evaluation results:" << endl;
-          cout << "Order: " << order << ", No. cycles: " << no_cycles << endl;
-
-          print_sym_scheme(cout, scheme, a_eval, b_eval);
-        }
-      }
+      W_vec.push_back(wi[2]);
     }
-
-    cout << string(64, '=') << endl;
   }
-  else if (method == "load_iterate")
+  if (order == 8)
   {
-    cout << "Running Symbolic Scheme up to order " << order << " and number of cycles q = " << no_cycles << endl;
-    cout << string(64, '=') << endl;
-
-    cout << "Loading the scheme from " << load_dir << endl;
-    if (is_same_v<Scalar, double> || is_same_v<Scalar, complex<double>>)
+    for (size_t i{0}; i < 6; ++i)
     {
-      Scheme<double> scheme(load_dir, order, no_cycles, verbose);
-
-      cout << "Iterating " << 2 * steps << " cycles:" << endl;
-      scheme.q += 2 * steps;
-      no_cycles += 2 * steps;
-      scheme.transform(scheme.q);
-      scheme.iterate(steps);
-
-      // Save the scheme if a save directory is provided
-      if (!save_dir.empty())
-      {
-        cout << "Saving Scheme to " << save_dir << "saved_schemes/" << endl;
-        scheme.save(save_dir + "saved_schemes/");
-      }
+      W_vec.push_back(wi[1]);
     }
-    else if (is_same_v<Scalar, long double> || is_same_v<Scalar, complex<long double>>)
+    for (size_t i{0}; i < 18; ++i)
     {
-      Scheme<long double> scheme(load_dir, order, no_cycles, verbose);
+      W_vec.push_back(wi[2]);
+    }
+    for (size_t i{0}; i < 56; ++i)
+    {
+      W_vec.push_back(wi[3]);
+    }
+  }
 
-      cout << "Iterating " << 2 * steps << " cycles:" << endl;
-      scheme.q += 2 * steps;
-      no_cycles += 2 * steps;
-      scheme.transform(scheme.q);
-      scheme.iterate(steps);
+  if (method == "minimize")
+  {
+    cout << "Running Numeric Minimization (minimize) for order " << order << " and number of cycles q = " << no_cycles << endl;
+    cout << string(81, '=') << endl;
 
-      // Save the scheme if a save directory is provided
-      if (!save_dir.empty())
-      {
-        cout << "Saving Scheme to " << save_dir << "saved_schemes/" << endl;
-        scheme.save(save_dir + "saved_schemes/");
-      }
+    NMinimization<Vec> minim(a_init, b_init, step, order, no_cycles, W_vec, n_iter, eps1, Ls);
+    MinResult<Vec> mini{minim.minimize(lambda, nullptr, verbose)};
+
+    if (verbose)
+    {
+      mini.display();
+      cout << string(81, '-') << endl;
     }
 
-    cout << string(64, '=') << endl;
+    NScheme<Vec> scheme(8, no_cycles, mini.a_vec, mini.b_vec);
+    scheme.iterate();
+
+    if (!save_dir.empty())
+    {
+      string write_file = save_dir + "num_minimize_q" + to_string(no_cycles) + ".out";
+      ofstream wfile(write_file, ios::app);
+      if (!wfile.is_open())
+      {
+        runtime_error("Error opening output file: " + write_file);
+      }
+
+      print_num_min(wfile, order, no_cycles, eps1, eps2, wi, step, n_iter, Ls, lambda, 1);
+      print_num_min(cout, order, no_cycles, eps1, eps2, wi, step, n_iter, Ls, lambda, 1);
+
+      print_num_min1(wfile, scheme, a_init, b_init);
+      print_num_min1(cout, scheme, a_init, b_init);
+
+      wfile << "\n\n";
+    }
+    else
+    {
+      print_num_min(cout, order, no_cycles, eps1, eps2, wi, step, n_iter, Ls, lambda, 1);
+      print_num_min1(cout, scheme, a_init, b_init);
+    }
+
+    cout << string(81, '=') << endl;
+  }
+  else if (method == "minimize_origin")
+  {
+    cout << "Running Numeric Minimization (minimize_origin) for order " << order << " and number of cycles q = " << no_cycles << endl;
+    cout << string(81, '=') << endl;
+
+    // Add the additional weight
+    if (order == 4)
+    {
+      W_vec.push_back(wi[1]);
+    }
+    if (order == 6)
+    {
+      W_vec.push_back(wi[2]);
+    }
+    if (order == 8)
+    {
+      W_vec.push_back(wi[3]);
+    }
+
+    NMinimization<Vec> minim(a_init, b_init, step, order, no_cycles, W_vec, n_iter, eps1, Ls);
+    MinResult<Vec> mini{minim.minimize_origin(lambda, ratio, nullptr, verbose)};
+
+    if (verbose)
+    {
+      mini.display();
+      cout << string(81, '-') << endl;
+    }
+
+    NScheme<Vec> scheme(8, no_cycles, mini.a_vec, mini.b_vec);
+    scheme.iterate();
+
+    if (!save_dir.empty())
+    {
+      string write_file = save_dir + "num_minimize_origin_q" + to_string(no_cycles) + ".out";
+      ofstream wfile(write_file, ios::app);
+      if (!wfile.is_open())
+      {
+        runtime_error("Error opening output file: " + write_file);
+      }
+
+      print_num_min_origin(wfile, order, no_cycles, eps1, eps2, wi, step, n_iter, Ls, lambda, ratio, 1);
+      print_num_min_origin(cout, order, no_cycles, eps1, eps2, wi, step, n_iter, Ls, lambda, ratio, 1);
+
+      print_num_min1(wfile, scheme, a_init, b_init);
+      print_num_min1(cout, scheme, a_init, b_init);
+
+      wfile << "\n\n";
+    }
+    else
+    {
+      print_num_min_origin(cout, order, no_cycles, eps1, eps2, wi, step, n_iter, Ls, lambda, ratio, 1);
+      print_num_min1(cout, scheme, a_init, b_init);
+    }
+
+    cout << string(81, '=') << endl;
+  }
+  else if (method == "min_twostep")
+  {
+    cout << "Running Numeric Minimization (min_twostep) for order " << order << " and number of cycles q = " << no_cycles << endl;
+    cout << string(81, '=') << endl;
+
+    NMinimization<Vec> minim(a_init, b_init, step, order, no_cycles, W_vec, n_iter, eps1, Ls);
+    MinResult<Vec> mini{minim.min_twostep(lambda, &eps2, verbose, freeze)};
+
+    if (verbose)
+    {
+      mini.display();
+      cout << string(81, '-') << endl;
+    }
+
+    NScheme<Vec> scheme(8, no_cycles, mini.a_vec, mini.b_vec);
+    scheme.iterate();
+
+    if (!save_dir.empty())
+    {
+      string write_file = save_dir + "num_min_twostep_q" + to_string(no_cycles) + ".out";
+      ofstream wfile(write_file, ios::app);
+      if (!wfile.is_open())
+      {
+        runtime_error("Error opening output file: " + write_file);
+      }
+
+      print_num_min(wfile, order, no_cycles, eps1, eps2, wi, step, n_iter, Ls, lambda, 2);
+      print_num_min(cout, order, no_cycles, eps1, eps2, wi, step, n_iter, Ls, lambda, 2);
+
+      print_num_min1(wfile, scheme, a_init, b_init);
+      print_num_min1(cout, scheme, a_init, b_init);
+
+      wfile << "\n\n";
+    }
+    else
+    {
+      print_num_min(cout, order, no_cycles, eps1, eps2, wi, step, n_iter, Ls, lambda, 2);
+
+      print_num_min1(cout, scheme, a_init, b_init);
+    }
+
+    cout << string(81, '=') << endl;
+  }
+  else if (method == "min_twostep_origin")
+  {
+    cout << "Running Numeric Minimization (min_twostep_origin) for order " << order << " and number of cycles q = " << no_cycles << endl;
+    cout << string(81, '=') << endl;
+
+    // Add the additional weight
+    if (order == 4)
+    {
+      W_vec.push_back(wi[1]);
+    }
+    if (order == 6)
+    {
+      W_vec.push_back(wi[2]);
+    }
+    if (order == 8)
+    {
+      W_vec.push_back(wi[3]);
+    }
+
+    NMinimization<Vec> minim(a_init, b_init, step, order, no_cycles, W_vec, n_iter, eps1, Ls);
+    MinResult<Vec> mini{minim.min_twostep_origin(lambda, ratio, &eps2, verbose, freeze)};
+
+    if (verbose)
+    {
+      mini.display();
+      cout << string(81, '-') << endl;
+    }
+
+    NScheme<Vec> scheme(8, no_cycles, mini.a_vec, mini.b_vec);
+    scheme.iterate();
+
+    if (!save_dir.empty())
+    {
+      string write_file = save_dir + "num_min_twostep_origin_q" + to_string(no_cycles) + ".out";
+      ofstream wfile(write_file, ios::app);
+      if (!wfile.is_open())
+      {
+        runtime_error("Error opening output file: " + write_file);
+      }
+
+      print_num_min_origin(wfile, order, no_cycles, eps1, eps2, wi, step, n_iter, Ls, lambda, ratio, 2);
+      print_num_min_origin(cout, order, no_cycles, eps1, eps2, wi, step, n_iter, Ls, lambda, ratio, 2);
+
+      print_num_min1(wfile, scheme, a_init, b_init);
+      print_num_min1(cout, scheme, a_init, b_init);
+
+      wfile << "\n\n";
+    }
+    else
+    {
+      print_num_min_origin(cout, order, no_cycles, eps1, eps2, wi, step, n_iter, Ls, lambda, ratio, 2);
+
+      print_num_min1(cout, scheme, a_init, b_init);
+    }
+
+    cout << string(81, '=') << endl;
+  }
+  else if (method == "find")
+  {
+    cout << "Running Numeric Minimization (find, " << steps << ") for order " << order << " and number of cycles q = " << no_cycles << endl;
+    cout << string(88, '=') << endl;
+
+    NMinimization<Vec> minim(step, order, no_cycles, W_vec, n_iter, eps1, Ls);
+    pair<array<vector<Vec>, 4>, vector<int>> minima;
+
+    if (steps == 1)
+    {
+      minima = minim.find(N, lambda, steps, mu, sigma, nullptr, true, verbose, tol, freeze);
+    }
+    else if (steps == 2)
+    {
+      minima = minim.find(N, lambda, steps, mu, sigma, &eps2, true, verbose, tol, freeze);
+    }
+
+    array<vector<Vec>, 4> ab_vecs{minima.first};
+
+    int sum_convs{accumulate(minima.second.begin(), minima.second.end(), 0)};
+    // Write to file if specified otherwise just output to terminal
+    if (!save_dir.empty())
+    {
+      string write_file = save_dir + "num_minim_find_q" + to_string(no_cycles) + ".out";
+      ofstream wfile(write_file, ios::app);
+      if (!wfile.is_open())
+      {
+        runtime_error("Error opening output file: " + write_file);
+      }
+
+      print_num_find(cout, order, no_cycles, eps1, eps2, wi, step, n_iter, Ls, lambda, N, steps, mu, sigma, sum_convs, tol);
+      print_num_find(wfile, order, no_cycles, eps1, eps2, wi, step, n_iter, Ls, lambda, N, steps, mu, sigma, sum_convs, tol);
+
+      double ratioN;
+      RealT eff2;
+      RealT eff4;
+      RealT eff6;
+      RealT eff8;
+      int tracker{0};
+      for (size_t i{0}; i < ab_vecs[0].size(); ++i)
+      {
+        NScheme<Vec> scheme(8, no_cycles, ab_vecs[0][i], ab_vecs[2][i]);
+        scheme.iterate();
+
+        ratioN = (static_cast<double>(minima.second[i]) / static_cast<double>(N)) * 100.0;
+        eff2 = 1 / (pow(no_cycles, 2) * sqrt(scheme.err2(2)));
+        eff4 = 1 / (pow(no_cycles, 4) * sqrt(scheme.err2(4)));
+        eff6 = 1 / (pow(no_cycles, 6) * sqrt(scheme.err2(6)));
+        eff8 = 1 / (pow(no_cycles, 8) * sqrt(scheme.err2(8)));
+
+        bool pass{true};
+        if (order == 4 && scheme.err2(2) > threshold)
+        {
+          pass = false;
+        }
+        else if (order == 6 && scheme.err2(2) > threshold && scheme.err2(4) > threshold)
+        {
+          pass = false;
+        }
+        else if (order == 8 && scheme.err2(2) > threshold && scheme.err2(4) > threshold && scheme.err2(6) > threshold)
+        {
+          pass = false;
+        }
+
+        if (pass)
+        {
+          tracker += 1;
+          sum_convs -= minima.second[i];
+
+          print_find1(cout, tracker, ratioN, eff2, eff4, eff6, eff8);
+          print_find1(wfile, tracker, ratioN, eff2, eff4, eff6, eff8);
+
+          print_find2(cout, ab_vecs[0][i], ab_vecs[2][i]);
+          print_find2(wfile, ab_vecs[0][i], ab_vecs[2][i]);
+        }
+      }
+
+      cout << "Ratio of discarded samples: " << fixed << setprecision(2) << (static_cast<double>(sum_convs) / static_cast<double>(N)) * 100.0 << "%" << endl;
+      cout << string(38, '-') << endl;
+
+      wfile << "Ratio of discarded samples: " << fixed << setprecision(2) << (static_cast<double>(sum_convs) / static_cast<double>(N)) * 100.0 << "%" << endl;
+      wfile << string(38, '-') << endl;
+
+      wfile << "\n\n";
+
+      wfile.close();
+    }
+    else
+    {
+
+      print_num_find(cout, order, no_cycles, eps1, eps2, wi, step, n_iter, Ls, lambda, N, steps, mu, sigma, sum_convs, tol);
+
+      double ratioN;
+      RealT eff2;
+      RealT eff4;
+      RealT eff6;
+      RealT eff8;
+      int tracker{0};
+      for (size_t i{0}; i < ab_vecs[0].size(); ++i)
+      {
+        NScheme<Vec> scheme(8, no_cycles, ab_vecs[0][i], ab_vecs[2][i]);
+        scheme.iterate();
+
+        ratioN = (static_cast<double>(minima.second[i]) / static_cast<double>(N)) * 100.0;
+        eff2 = 1 / (pow(no_cycles, 2) * sqrt(scheme.err2(2)));
+        eff4 = 1 / (pow(no_cycles, 4) * sqrt(scheme.err2(4)));
+        eff6 = 1 / (pow(no_cycles, 6) * sqrt(scheme.err2(6)));
+        eff8 = 1 / (pow(no_cycles, 8) * sqrt(scheme.err2(8)));
+
+        bool pass{true};
+        if (order == 4 && scheme.err2(2) > threshold)
+        {
+          pass = false;
+        }
+        else if (order == 6 && scheme.err2(2) > threshold && scheme.err2(4) > threshold)
+        {
+          pass = false;
+        }
+        else if (order == 8 && scheme.err2(2) > threshold && scheme.err2(4) > threshold && scheme.err2(6) > threshold)
+        {
+          pass = false;
+        }
+
+        if (pass)
+        {
+          tracker += 1;
+          sum_convs -= minima.second[i];
+
+          print_find1(cout, tracker, ratioN, eff2, eff4, eff6, eff8);
+          print_find2(cout, ab_vecs[0][i], ab_vecs[2][i]);
+        }
+      }
+
+      cout << "Ratio of discarded samples: " << fixed << setprecision(2) << (static_cast<double>(sum_convs) / static_cast<double>(N)) * 100.0 << "%" << endl;
+      cout << string(38, '-') << endl;
+    }
+    cout << string(88, '=') << endl;
   }
   else
   {
@@ -4309,28 +5169,38 @@ void IO::sym_scheme()
 
 
 // Explicit routine instantiations for double
-template void IO::num_minim<double>();
-template void IO::sym_minim<double>();
-template void IO::num_scheme<double>();
 template void IO::sym_scheme<double>();
-
+template void IO::num_scheme<double>();
+template void IO::sym_minim<double>();
+template void IO::num_minim<double>();
 
 // Explicit routine instantiations for complex<double>
-template void IO::num_minim<complex<double>>();
-template void IO::sym_minim<complex<double>>();
-template void IO::num_scheme<complex<double>>();
 template void IO::sym_scheme<complex<double>>();
+template void IO::num_scheme<complex<double>>();
+template void IO::sym_minim<complex<double>>();
+template void IO::num_minim<complex<double>>();
 
 
 // Explicit routine instantiations for long double
-template void IO::num_minim<long double>();
-template void IO::sym_minim<long double>();
-template void IO::num_scheme<long double>();
 template void IO::sym_scheme<long double>();
-
+template void IO::num_scheme<long double>();
+template void IO::sym_minim<long double>();
+template void IO::num_minim<long double>();
 
 // Explicit routine instantiations for complex<long double>
-template void IO::num_minim<complex<long double>>();
-template void IO::sym_minim<complex<long double>>();
-template void IO::num_scheme<complex<long double>>();
 template void IO::sym_scheme<complex<long double>>();
+template void IO::num_scheme<complex<long double>>();
+template void IO::sym_minim<complex<long double>>();
+template void IO::num_minim<complex<long double>>();
+
+// Explicit routine instantiations for quad
+//template void IO::sym_scheme<quad>();
+template void IO::num_scheme<quad>();
+//template void IO::sym_minim<quad>();
+template void IO::num_minim<quad>();
+
+// Explicit routine instantiations for complex<quad>
+//template void IO::sym_scheme<complex<quad>>();
+template void IO::num_scheme<complex<quad>>();
+//template void IO::sym_minim<complex<quad>>();
+template void IO::num_minim<complex<quad>>();

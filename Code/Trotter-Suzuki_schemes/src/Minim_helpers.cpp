@@ -1,7 +1,6 @@
 #include "Minim_helpers.h"
 
 // Helper function to compare two vectors
-// Specialization for VectorXd
 template <typename Vec>
 bool compare_min(const Vec &v1, const Vec &v2, const typename Eigen::NumTraits<typename Vec::Scalar>::Real &tol)
 {
@@ -321,22 +320,29 @@ template bool compare_min<VectorXd>(const VectorXd &v1, const VectorXd &v2, cons
 template bool compare_min<VectorXcd>(const VectorXcd &v1, const VectorXcd &v2, const Eigen::NumTraits<typename VectorXcd::Scalar>::Real &tol);
 template bool compare_min<VectorXld>(const VectorXld &v1, const VectorXld &v2, const Eigen::NumTraits<typename VectorXld::Scalar>::Real &tol);
 template bool compare_min<VectorXcld>(const VectorXcld &v1, const VectorXcld &v2, const Eigen::NumTraits<typename VectorXcld::Scalar>::Real &tol);
+template bool compare_min<VectorXQ>(const VectorXQ &v1, const VectorXQ &v2, const Eigen::NumTraits<typename VectorXQ::Scalar>::Real &tol);
+template bool compare_min<VectorXcQ>(const VectorXcQ &v1, const VectorXcQ &v2, const Eigen::NumTraits<typename VectorXcQ::Scalar>::Real &tol);
 
 // Explicit template instantiation for to_standard helper
 template std::pair<VectorXd, VectorXd> to_standard<VectorXd>(const int&, const VectorXd&, const VectorXd&);
 template std::pair<VectorXcd, VectorXcd> to_standard<VectorXcd>(const int&, const VectorXcd&, const VectorXcd&);
 template std::pair<VectorXld, VectorXld> to_standard<VectorXld>(const int&, const VectorXld&, const VectorXld&);
 template std::pair<VectorXcld, VectorXcld> to_standard<VectorXcld>(const int&, const VectorXcld&, const VectorXcld&);
+template std::pair<VectorXQ, VectorXQ> to_standard<VectorXQ>(const int&, const VectorXQ&, const VectorXQ&);
+template std::pair<VectorXcQ, VectorXcQ> to_standard<VectorXcQ>(const int&, const VectorXcQ&, const VectorXcQ&);
 
 // Explicit template instantiation for to_ramp helper
 template std::pair<VectorXd, VectorXd> to_ramp<VectorXd>(const int&, const VectorXd&, const VectorXd&);
 template std::pair<VectorXcd, VectorXcd> to_ramp<VectorXcd>(const int&, const VectorXcd&, const VectorXcd&);
 template std::pair<VectorXld, VectorXld> to_ramp<VectorXld>(const int&, const VectorXld&, const VectorXld&);
 template std::pair<VectorXcld, VectorXcld> to_ramp<VectorXcld>(const int&, const VectorXcld&, const VectorXcld&);
-
+template std::pair<VectorXQ, VectorXQ> to_ramp<VectorXQ>(const int&, const VectorXQ&, const VectorXQ&);
+template std::pair<VectorXcQ, VectorXcQ> to_ramp<VectorXcQ>(const int&, const VectorXcQ&, const VectorXcQ&);
 
 // Explicit instantiation for the MinResult class
 template class MinResult<VectorXd>;
 template class MinResult<VectorXcd>;
 template class MinResult<VectorXld>;
 template class MinResult<VectorXcld>;
+template class MinResult<VectorXQ>;
+template class MinResult<VectorXcQ>;

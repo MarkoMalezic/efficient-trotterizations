@@ -3,7 +3,9 @@
 
 #include <vector>
 #include <type_traits>
+#include <boost/multiprecision/cpp_bin_float.hpp>
 
+using quad = boost::multiprecision::cpp_bin_float_quad;
 using namespace std;
 
 // Class which stores the prefactors needed to compute Coefficients
@@ -12,13 +14,15 @@ template <typename RealT>
 class Prefactors
 {
 public:
-  // Order n=3
+  // Order n=2
   static const RealT alpha;
   static const RealT beta;
-  // Order n=5
+  // Order n=4
   static const vector<RealT> gammas;
-  // Order n=7
+  // Order n=6
   static const vector<RealT> deltas;
+  // Order n=8
+  static const vector<RealT> epsilons;
 
   // Prefactors default constructor
   Prefactors();

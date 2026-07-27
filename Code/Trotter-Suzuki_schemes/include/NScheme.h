@@ -5,7 +5,7 @@
 #include "NCoefficients.h"
 
 // Class which calculates the numerical values of the Trotter-Suzuki scheme by recursively iterating from the inside out
-// using template to take in any Eigen vector class (VectorXd, VectorXcd, VectorXld, VectorXcld)
+// using template to take in any Eigen vector class (VectorXd, VectorXcd, VectorXld, VectorXcld, VectorXQ, VectorXcQ)
 template <typename Vec>
 class NScheme
 {

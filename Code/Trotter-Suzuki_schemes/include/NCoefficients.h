@@ -10,6 +10,8 @@ using Eigen::VectorXcd;
 using Eigen::VectorXd;
 using VectorXld = Eigen::Matrix<long double, Eigen::Dynamic, 1>;
 using VectorXcld = Eigen::Matrix<complex<long double>, Eigen::Dynamic, 1>;
+using VectorXQ = Eigen::Matrix<quad, Eigen::Dynamic, 1>;
+using VectorXcQ = Eigen::Matrix<complex<quad>, Eigen::Dynamic, 1>;
 
 // Class which stores the numerical values of coefficients
 // using template to take in any Eigen vector class (VectorXd, VectorXcd, VectorXld, VectorXcld)
@@ -66,6 +68,9 @@ public:
 
   // Method to update the delta coefficients
   void *deltas_step(const int &delta_ind, int &ind);
+
+  // Method to update the epsilon coefficients
+  void *epsilons_step(const int &epsilon_ind, int &ind);
 };
 
 #endif // _NCOEFFICIENTS_H_

@@ -82,25 +82,7 @@ public:
   pair<array<vector<Vec>, 4>, vector<int>> find(const int &N, RealT &lambda, const int &steps,
                                                 const Scalar &mu, const Scalar &sigma,
                                                 const array<RealT, 4> *eps2 = nullptr, const bool &bsort = true, const bool &verbose = false,
-                                                const double &tol = 1e-15, const bool &freeze = false);
-
-  // Overloaded method to find as many minima of the polynomial manifold (using a vector of averages mus)
-  pair<array<vector<Vec>, 4>, vector<int>> find(const int &N, RealT &lambda, const int &steps,
-                                                const vector<Scalar> &mus, const Scalar &sigma,
-                                                const array<RealT, 4> *eps2 = nullptr, const bool &bsort = true, const bool &verbose = false,
-                                                const double &tol = 1e-15, const bool &freeze = false);
-
-  // Method to find as many minima of the polynomial manifold with additional term (using a vector of averages mus)
-  pair<array<vector<Vec>, 4>, vector<int>> find_origin(const int &N, RealT &lambda, const RealT ratio, const int &steps,
-                                                       const Scalar &mu, const Scalar &sigma,
-                                                       const array<RealT, 4> *eps2 = nullptr, const bool &bsort = true, const bool &verbose = false,
-                                                       const double &tol = 1e-15, const bool &freeze = false);
-
-  // Overloaded method to find as many minima of the polynomial manifold with additional term (using a vector of averages mus)
-  pair<array<vector<Vec>, 4>, vector<int>> find_origin(const int &N, RealT &lambda, const RealT ratio, const int &steps,
-                                                       const vector<Scalar> &mus, const Scalar &sigma,
-                                                       const array<RealT, 4> *eps2 = nullptr, const bool &bsort = true, const bool &verbose = false,
-                                                       const double &tol = 1e-15, const bool &freeze = false);
+                                                const RealT &tol = RealT(1e-15), const bool &freeze = false);
 };
 
 #endif // _NMINIMIZATION_H_
