@@ -7,7 +7,7 @@ scalar_type = complex_double
 #save_dir = ../../../Data/Numerical_Scheme/complex_double/
 
 # General parameters
-order = 6
+order = 8
 no_cycles = 1
 
 # Specific parameters

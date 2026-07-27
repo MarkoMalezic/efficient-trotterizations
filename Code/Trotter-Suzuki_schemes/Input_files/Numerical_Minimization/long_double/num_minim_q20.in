@@ -1,0 +1,38 @@
+# Routine and mode specification
+routine = 0
+mode = 0
+scalar_type = long_double
+
+# Save directory path (if empty no writing occurs)
+save_dir = ../Data/Numerical_Minimization/long_double/
+
+# General parameters
+order = 8
+no_cycles = 20
+
+# Specific parameters
+method = min_twostep
+a_init = 0.32543842195333527734, -0.10220426410139990536, -0.07569027272690709296, 0.69245177158414861207, -0.28051705123788306384, 0.21915260463185115558, -0.03587211329780838620, -0.08041646149869281779, 0.11365190040273183414, -0.22898365061590711389, 0.45298911490653148704
+b_init = 0.65087684390667055467, -0.85528537210946997682, 0.70390482665565567988, 0.68099871651264087813, -1.24203281898840689479, 1.68033802825210876186, -1.75208225484772550651, 1.59124933185034000971, -1.36394553104487648021, 0.90597822981306275203
+# Minimization hyperparameters
+eps1 = 1e-18, 1e-18, 1e-36, 0.0
+eps2 = 1e-18, 1e-18, 0.0, 0.0
+wi = 1.0, 1e4, 1e7, 1e3
+step = 1e-5
+n_iter = 10000
+Ls = 9.0, 11.0
+lambda = 0.5
+# Minima finder parameters
+N = 100000
+steps = 1
+threshold = 1e-16
+mu = 0.125
+sigma = 1.0
+#des_prob = 
+#bsort = 
+# Verbose option
+verbose = 1
+# Minima comparison parameter
+tol = 1e-4
+# Hessian freeze option
+freeze = 0

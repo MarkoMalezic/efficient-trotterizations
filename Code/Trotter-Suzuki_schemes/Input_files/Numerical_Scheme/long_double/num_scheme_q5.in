@@ -7,7 +7,7 @@ scalar_type = long_double
 #save_dir = ../../../Data/Numerical_Scheme/long_double/
 
 # General parameters
-order = 6
+order = 8
 no_cycles = 5
 
 # Specific parameters

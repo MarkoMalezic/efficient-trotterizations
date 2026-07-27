@@ -1,0 +1,38 @@
+# Routine and mode specification
+routine = 0
+mode = 0
+scalar_type = quad
+
+# Save directory path (if empty no writing occurs)
+save_dir = /home/mmalezic_hpc/Projects/Trotterization/Code/Coefficients/Data/Numerical_Minimization/quad/
+
+# General parameters
+order = 6
+no_cycles = 12
+
+# Specific parameters
+method = min_twostep
+a_init = -0.35120719195965763421, 1.35120719195965763423, 0.0, 0.0, 0.0
+b_init = -1.70241438391931526716, 2.70241438391931526716, 0.0, 0.0, 0.0
+# Minimization hyperparameters
+eps1 = 1e-34, 1e-34, 1e-68, 0.0
+eps2 = 1e-36, 1e-36, 0.0, 0.0
+wi = 1.0, 1e2, 1e-1
+step = 1e-5
+n_iter = 1000
+Ls = 9.0, 11.0
+lambda = 0.25
+# Minima finder parameters
+N = 10
+steps = 2
+#threshold = 1.0
+mu = 0.0
+sigma = 1.0
+#des_prob = 
+#bsort = 
+# Verbose option
+verbose = 0
+# Minima comparison parameter
+tol = 1e-8
+# Hessian freeze option
+freeze = 0

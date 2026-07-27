@@ -7,7 +7,7 @@ scalar_type = double
 #save_dir = ../../../Data/Numerical_Scheme/double/
 
 # General parameters
-order = 6
+order = 8
 no_cycles = 3
 
 # Specific parameters

@@ -15,8 +15,8 @@ method = find
 a_init = 0.0, 0.2, -2.1, 1.4, 1.5
 b_init = 2.4, -4.3, 0.0, 2.9
 # Minimization hyperparameters
-eps1 = 1e-14, 1e-14, 1e-28, 1e-3
-eps2 = 1e-15, 1e-15, 1e-30, 1e-3
+eps1 = 1e-14, 1e-14, 1e-28, 0.0
+eps2 = 1e-15, 1e-15, 1e-30, 0.0
 wi = 1.0, 1e2
 step = 1e-5
 n_iter = 1000

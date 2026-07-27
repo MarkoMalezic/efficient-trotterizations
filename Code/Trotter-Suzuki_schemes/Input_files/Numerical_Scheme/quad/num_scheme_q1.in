@@ -1,0 +1,16 @@
+# Routine and mode specification
+routine = 1
+mode = 0
+scalar_type = quad
+
+# Save directory path (if empty no writing occurs)
+save_dir = ../Data/Numerical_Scheme/quad/
+
+# General parameters
+order = 8
+no_cycles = 1
+
+# Specific parameters
+a_eval = 1.0
+b_eval = 1.0
+verbose = 0

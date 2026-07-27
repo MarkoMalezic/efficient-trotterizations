@@ -17,8 +17,8 @@ b_init = -1.70241438391931526749, 2.70241438391931526738
 #load_dir = ../../../Data/Symbolic_Scheme/long_double/saved_schemes/
 bderivs = true
 # Minimization hyperparameters
-eps1 = 1e-20, 1e-20, 1e-40, 1e-3
-eps2 = 1e-20, 1e-20, 0.0, 1e-3
+eps1 = 1e-20, 1e-20, 1e-40, 0.0
+eps2 = 1e-20, 1e-20, 0.0, 0.0
 wi = 1.0, 1e-1
 n_iter = 1000
 Ls = 9.0, 11.0
