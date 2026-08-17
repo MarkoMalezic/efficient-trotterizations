@@ -36,7 +36,7 @@ Returns the theoretical error and the efficiency per order.
 
 Parameters:
 - save_dir (string): Path to save directory
-- order (2, 4, 6): Order of the scheme
+- order (2, 4, 6, 8): Order of the scheme
 - no_cycles (1, 2, 3, ...): Number of cycles
 - a_eval (vector<scalar_type>): A vector of scheme evaluation parameters a
 - b_eval (vector<scalar_type>): A vector of scheme evaluation parameters b
@@ -47,7 +47,7 @@ Parameters:
 Numerically minimizes a scheme according to a subroutine (method).
 The shared parameters between schemes are:
 - save_dir (string): Path to save directory
-- order (2, 4, 6): Order of the scheme
+- order (2, 4, 6, 8): Order of the scheme
 - no_cycles (1, 2, 3, ...): Number of cycles
 - method (string): Subroutine name
 
@@ -127,7 +127,7 @@ There exist a few subroutines (methods), which allow for easier computation of h
 
 Parameters:
 - save_dir (string): Path to save directory (It is possible to save the computed coefficient tensors)
-- order (2, 4, 6): Order of the scheme
+- order (2, 4, 6, 8): Order of the scheme
 - no_cycles (1, 2, 3, ...): Number of cycles
 - a_eval (vector<scalar_type>): A vector of scheme evaluation parameters a
 - b_eval (vector<scalar_type>): A vector of scheme evaluation parameters b
@@ -143,7 +143,7 @@ Subroutines:
 Minimization of symbolic scheme coefficients according to a subroutine (method).
 The shared parameters between schemes are:
 - save_dir (string): Path to save directory
-- order (2, 4, 6): Order of the scheme
+- order (2, 4, 6, 8): Order of the scheme
 - no_cycles (1, 2, 3, ...): Number of cycles
 - method (string): Subroutine name
 - load_dir (string): Path to a directory where the scheme is saved (optional)

@@ -3,7 +3,7 @@
 A derivation, implementation and application of Trotter-Suzuki decomposition schemes at high orders.
 
 This repository contains the code required to reproduce the results presented in "Efficient Trotter-Suzuki Schemes for Long-time Quantum Dynamics".
-It also stores novel schemes at order n = 2, 4, 6 in different formats.
+It also stores novel schemes at order n = 2, 4, 6, 8 in different formats.
 Data for time evolution is not included in the repository, but it will be gladly provided upon request.
 
 For questions concerning the code contact: malezic@hiskp.uni-bonn.de
