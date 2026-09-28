@@ -26,7 +26,7 @@ int main(int argc, char *argv[])
       }
       else if (input.mode == 1)
       {
-        input.sym_minim<double>();
+        cout << "Symbolic minimization is no longer supported." << endl;
       }
       else
       {
@@ -68,7 +68,7 @@ int main(int argc, char *argv[])
       }
       else if (input.mode == 1)
       {
-        input.sym_minim<complex<double>>();
+        cout << "Symbolic minimization is no longer supported." << endl;
       }
       else
       {
@@ -110,7 +110,7 @@ int main(int argc, char *argv[])
       }
       else if (input.mode == 1)
       {
-        input.sym_minim<long double>();
+        cout << "Symbolic minimization is no longer supported." << endl;
       }
       else
       {
@@ -152,7 +152,7 @@ int main(int argc, char *argv[])
       }
       else if (input.mode == 1)
       {
-        input.sym_minim<complex<long double>>();
+        cout << "Symbolic minimization is no longer supported." << endl;
       }
       else
       {

@@ -36,7 +36,8 @@ List parse_list(const string &str);
 template <typename RealT>
 void print_num_min(ostream &stream, const int &order, const int &no_cycles,
                    const array<RealT, 4> &eps1, const array<RealT, 4> &eps2, const vector<RealT> &wi,
-                   const RealT step, const int n_iter, const array<RealT, 2> &Ls, const RealT lambda, const int steps);
+                   const RealT step, const int n_iter, const array<RealT, 2> &Ls, const RealT lambda, const int steps,
+                   const RealT *geod_eps = nullptr);
 
 template <typename RealT>
 void print_num_min_origin(ostream &stream, const int &order, const int &no_cycles,
@@ -60,19 +61,20 @@ template <typename Scalar, typename RealT>
 void print_num_find(ostream &stream, const int &order, const int &no_cycles,
                     const array<RealT, 4> &eps1, const array<RealT, 4> &eps2, const vector<RealT> &wi,
                     const RealT step, const int n_iter, const array<RealT, 2> &Ls, const RealT lambda, const int N, const int steps,
-                    Scalar mu, const vector<Scalar> &mus, Scalar sigma, int sum_convs, const RealT tol);
+                    Scalar mu, Scalar sigma, int sum_convs, const RealT tol,
+                    const RealT *geod_eps = nullptr);
 
 template <typename Scalar, typename RealT>
 void print_num_find_origin(ostream &stream, const int &order, const int &no_cycles,
                            const array<RealT, 4> &eps1, const array<RealT, 4> &eps2, const vector<RealT> &wi,
                            const RealT step, const int n_iter, const array<RealT, 2> &Ls, const RealT lambda, const RealT &ratio, const int N, const int steps,
-                           Scalar mu, const vector<Scalar> &mus, Scalar sigma, int sum_convs, const RealT tol);
+                           Scalar mu, Scalar sigma, int sum_convs, const RealT tol);
 
 template <typename Scalar, typename RealT>
 void print_sym_find(ostream &stream, const int &order, const int &no_cycles,
                     const array<RealT, 4> &eps1, const array<RealT, 4> &eps2, const vector<RealT> &wi,
                     const int n_iter, const array<RealT, 2> &Ls, const RealT lambda, const int N, const int steps,
-                    Scalar mu, const vector<Scalar> &mus, Scalar sigma, int sum_convs, const RealT tol);
+                    Scalar mu, Scalar sigma, int sum_convs, const RealT tol);
 
 template <typename RealT>
 void print_find1(ostream &stream, const int &tracker, const double &ratio,
@@ -127,13 +129,6 @@ public:
   template <typename Scalar>
   void num_scheme();
 
-
-  // Symbolic Minimization
-  // Methods: - minimize: minimize the computed/loaded scheme manifold once using initial vector a_vec, b_vec
-  //          - min_twostep: minimize the computed/loaded scheme manifold twice (constraint minimization in the 2. step)
-  //          - find: find as many minima for the computed/loaded scheme manifold
-  template <typename Scalar>
-  void sym_minim();
 
   // Symbolic Scheme
   // Methods: - scratch: compute scheme from scratch

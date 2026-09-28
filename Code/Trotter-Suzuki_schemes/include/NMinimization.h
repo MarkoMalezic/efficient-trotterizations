@@ -66,23 +66,47 @@ public:
   // Method to construct the Jacobian with the additional term (distance from the origin)
   Mat jacobian_origin(const RealT &ratio);
 
-  // Method to minimize the polynomial manifold
+  // Method to compute the singular values of the Jacobian matrix
+  // Only implemented for double/long double (and their complex counterparts): Eigen's SVD
+  // does not compile efficiently against the boost::multiprecision quad type, which is why
+  // this is gated off (via if constexpr, so it is never instantiated) for VectorXQ/VectorXcQ.
+  Eigen::Matrix<RealT, Dynamic, 1> singular_values();
+
+  // Method to construct the directional derivative (for the geodesic acceleration)
+  Vec dir_deriv(const Vec &y, const Vec &h, const Mat &J);
+
+
+  // Method to minimize the polynomial manifold using LM
   MinResult<Vec> minimize(RealT lambda, const HessMatrixForVector_t<Vec> *hess = nullptr, const bool &verbose = false);
 
-  // Method to minimize the polynomial manifold with the additional term (distance from the origin)
+  // Method to minimize the polynomial manifold using LM with geodesic acceleration
+  MinResult<Vec> minimize_geodesic(RealT lambda, const HessMatrixForVector_t<Vec> *hess = nullptr, const bool &verbose = false, const RealT &geod_eps = 0.75);
+
+  // Method to minimize the polynomial manifold with the additional term (distance from the origin) using LM
   MinResult<Vec> minimize_origin(RealT lambda, const RealT ratio, const HessMatrixForVector_t<Vec> *hess = nullptr, const bool &verbose = false);
+
 
   // Method to minimize the polynomial manifold in two steps
   MinResult<Vec> min_twostep(RealT lambda, const array<RealT, 4> *eps2 = nullptr, const bool &verbose = false, const bool &freeze = false);
 
+  // Method to minimize the polynomial manifold in two steps (with geodesic acceleration)
+  MinResult<Vec> min_twostep_geodesic(RealT lambda, const array<RealT, 4> *eps2 = nullptr, const bool &verbose = false, const bool &freeze = false, const RealT &geod_eps = 0.75);
+
   // Method to minimize the polynomial manifold in two steps with the additional term (distance from the origin)
   MinResult<Vec> min_twostep_origin(RealT lambda, const RealT ratio, const array<RealT, 4> *eps2 = nullptr, const bool &verbose = false, const bool &freeze = false);
+
 
   // Method to find as many minima of the polynomial manifold
   pair<array<vector<Vec>, 4>, vector<int>> find(const int &N, RealT &lambda, const int &steps,
                                                 const Scalar &mu, const Scalar &sigma,
                                                 const array<RealT, 4> *eps2 = nullptr, const bool &bsort = true, const bool &verbose = false,
                                                 const RealT &tol = RealT(1e-15), const bool &freeze = false);
+  
+  // Method to find as many minima of the polynomial manifold with geodesic acceleration
+  pair<array<vector<Vec>, 4>, vector<int>> find_geodesic(const int &N, RealT &lambda, const int &steps,
+                                                const Scalar &mu, const Scalar &sigma,
+                                                const array<RealT, 4> *eps2 = nullptr, const bool &bsort = true, const bool &verbose = false,
+                                                const RealT &tol = RealT(1e-15), const bool &freeze = false, const RealT &geod_eps = 0.75);
 };
 
 #endif // _NMINIMIZATION_H_

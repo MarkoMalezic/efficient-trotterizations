@@ -415,7 +415,8 @@ VectorXcQ parse_list(const string &str)
 template <typename RealT>
 void print_num_min(ostream &stream, const int &order, const int &no_cycles,
                    const array<RealT, 4> &eps1, const array<RealT, 4> &eps2, const vector<RealT> &wi,
-                   const RealT step, const int n_iter, const array<RealT, 2> &Ls, const RealT lambda, const int steps)
+                   const RealT step, const int n_iter, const array<RealT, 2> &Ls, const RealT lambda, const int steps,
+                   const RealT *geod_eps)
 {
   stream << "Minimize (" << steps << " step) results" << endl;
   stream << "Order: " << order << ", No. cycles: " << no_cycles << endl;
@@ -445,6 +446,10 @@ void print_num_min(ostream &stream, const int &order, const int &no_cycles,
   stream << "Derivative step: " << scientific << setprecision(1) << step << endl;
   stream << "Number of maximal iterations: " << fixed << setprecision(1) << n_iter << endl;
   stream << "Ls = (" << fixed << setprecision(2) << Ls[0] << ", " << Ls[1] << "), lambda = " << lambda << endl;
+  if (geod_eps)
+  {
+    stream << "geod_eps = " << scientific << setprecision(2) << *geod_eps << endl;
+  }
 }
 
 
@@ -1617,7 +1622,8 @@ template <typename Scalar, typename RealT>
 void print_num_find(ostream &stream, const int &order, const int &no_cycles,
                     const array<RealT, 4> &eps1, const array<RealT, 4> &eps2, const vector<RealT> &wi,
                     const RealT step, const int n_iter, const array<RealT, 2> &Ls, const RealT lambda, const int N, const int steps,
-                    Scalar mu, Scalar sigma, int sum_convs, const RealT tol)
+                    Scalar mu, Scalar sigma, int sum_convs, const RealT tol,
+                    const RealT *geod_eps)
 {
   stream << "Minima finder results" << endl;
   stream << "Order: " << order << ", No. cycles: " << no_cycles << endl;
@@ -1647,6 +1653,10 @@ void print_num_find(ostream &stream, const int &order, const int &no_cycles,
   stream << "Derivative step: " << scientific << setprecision(1) << step << endl;
   stream << "Number of maximal iterations: " << fixed << setprecision(1) << n_iter << endl;
   stream << "Ls = (" << fixed << setprecision(2) << Ls[0] << ", " << Ls[1] << "), lambda = " << lambda << endl;
+  if (geod_eps)
+  {
+    stream << "geod_eps = " << scientific << setprecision(2) << *geod_eps << endl;
+  }
   stream << "Number of initial conditions: " << fixed << N << endl;
   stream << "Number of steps taken: " << fixed << steps << endl;
   stream << "Comparison tolerance: " << scientific << setprecision(2) << tol << endl;
@@ -4076,562 +4086,6 @@ void IO::num_scheme()
 // ** Minimizations **
 
 
-// Symbolic Minimization
-// Methods: - minimize: minimize the computed/loaded scheme manifold once using initial vector a_vec, b_vec
-//          - min_twostep: minimize the computed/loaded scheme manifold twice (constraint minimization in the 2. step)
-//          - find: find as many minima for the computed/loaded scheme manifold
-template <typename Scalar>
-void IO::sym_minim()
-{
-  // Determine the Vec and RealT type from Scalar
-  using Vec = Eigen::Matrix<Scalar, Eigen::Dynamic, 1>;
-  using RealT = typename Eigen::NumTraits<typename Vec::Scalar>::Real;
-
-  // Specific parameters
-  string method; // Method to use for minimization (minimize, min_twostep, find)
-
-  // Initial ai and bi vectors
-  Vec a_init;
-  Vec b_init;
-
-  // Scheme load directory
-  string load_dir;
-  // Store derivatives
-  bool bderivs{true};
-
-  // Minimization hyperparameters
-  array<RealT, 4> eps1;            // Convergence criteria for the 1. step (eps1, eps2, eps3, eps4)
-  array<RealT, 4> eps2;            // Convergence criteria for the 2. step (eps1, eps2, eps3, eps4)
-  vector<RealT> wi;                // Weigths per order (w2, w4, w6, ...)
-  int n_iter{500};                 // Number of iterations before quitting if convergence isn't achieved
-  array<RealT, 2> Ls{{9.0, 11.0}}; // L_up, L_down
-  RealT lambda{0.25};              // Damping parameter
-
-  // Minima finder parameters
-  int N;                  // Number of initial conditions
-  int steps;              // Number of steps (1: minimize, 2: min_twostep)
-  RealT threshold{1e-18}; // Threshold to pass the minimal error
-  // Normal distribution parameters
-  Scalar mu;
-  Scalar sigma;
-
-  // Sort the found minima accoring to Chi2
-  bool bsort{false};
-
-  // Verbose option (false: nothing, true: Change of ai, bi during iterations)
-  bool verbose;
-
-  // Minima comparison parameters
-  RealT tol{1e-15};
-
-  // Hessian freeze option
-  bool freeze{false};
-
-  // Read the required parameters for the desired method
-  string line;
-  while (getline(rfile, line))
-  {
-    line = trim(line);
-    if (line.empty() || line[0] == '#')
-      continue;
-
-    size_t pos = line.find('=');
-    if (pos == string::npos)
-      continue;
-
-    string key = trim(line.substr(0, pos));
-    string value = trim(line.substr(pos + 1));
-
-    if (key == "method")
-    {
-      method = value;
-    }
-    // Initial ai and bi vectors
-    else if (key == "a_init")
-    {
-      a_init = parse_list<Vec>(value);
-    }
-    else if (key == "b_init")
-    {
-      b_init = parse_list<Vec>(value);
-    }
-    // Scheme load directory
-    else if (key == "load_dir")
-    {
-      load_dir = value;
-    }
-    else if (key == "bderivs")
-    {
-      bderivs = parse_bool(value);
-    }
-    // Minimization hyperparameters
-    else if (key == "eps1")
-    {
-      eps1 = parse_list<array<RealT, 4>>(value);
-    }
-    else if (key == "eps2")
-    {
-      eps2 = parse_list<array<RealT, 4>>(value);
-    }
-    else if (key == "wi")
-    {
-      wi = parse_list<vector<RealT>>(value);
-    }
-    else if (key == "n_iter")
-    {
-      n_iter = stoi(value);
-    }
-    else if (key == "Ls")
-    {
-      Ls = parse_list<array<RealT, 2>>(value);
-    }
-    else if (key == "lambda")
-    {
-      lambda = parse_value<RealT>(value);
-    }
-    else if (key == "verbose")
-    {
-      verbose = stoi(value);
-    }
-    // Minima finder parameters
-    else if (key == "N")
-    {
-      N = stoi(value);
-    }
-    else if (key == "steps")
-    {
-      steps = stoi(value);
-    }
-    else if (key == "threshold")
-    {
-      threshold = parse_value<RealT>(value);
-    }
-    else if (key == "mu")
-    {
-      mu = parse_value<Scalar>(value);
-    }
-    else if (key == "sigma")
-    {
-      sigma = parse_value<Scalar>(value);
-    }
-    else if (key == "bsort")
-    {
-      bsort = stoi(value);
-    }
-    // Minima comparison parameters
-    else if (key == "tol")
-    {
-      tol = parse_value<RealT>(value);
-    }
-    // Hessian freeze option
-    else if (key == "freeze")
-    {
-      freeze = stoi(value);
-    }
-  }
-
-  // Close the read_file
-  rfile.close();
-
-  // Fill the weights vector according to order
-  std::vector<RealT> W_vec;
-  W_vec.push_back(wi[0]);
-  W_vec.push_back(wi[0]);
-  if (order == 4)
-  {
-    for (size_t i{0}; i < 6; ++i)
-    {
-      W_vec.push_back(wi[1]);
-    }
-  }
-  if (order == 6)
-  {
-    for (size_t i{0}; i < 6; ++i)
-    {
-      W_vec.push_back(wi[1]);
-    }
-    for (size_t i{0}; i < 18; ++i)
-    {
-      W_vec.push_back(wi[2]);
-    }
-  }
-
-  if (method == "minimize")
-  {
-    cout << "Running Symbolic Minimization (minimize) for order " << order << " and number of cycles q = " << no_cycles << endl;
-    cout << string(81, '=') << endl;
-
-    if constexpr (is_same_v<Scalar, double> || is_same_v<Scalar, complex<double>>)
-    {
-      Scheme<double> scheme;
-      if (!load_dir.empty())
-      {
-        scheme = Scheme<double>(load_dir, order, no_cycles, verbose);
-      }
-      else
-      {
-        scheme = Scheme<double>(order, no_cycles, verbose);
-        scheme.iterate();
-      }
-
-      Minimization<Vec> minim(a_init, b_init, scheme, W_vec, n_iter, eps1, Ls, bderivs);
-      MinResult<Vec> mini{minim.minimize(lambda, nullptr, verbose)};
-
-      if (verbose)
-      {
-        mini.display();
-        cout << string(81, '-') << endl;
-      }
-
-      if (!save_dir.empty())
-      {
-        string write_file = save_dir + "sym_minim_minimize_q" + to_string(no_cycles) + ".out";
-        ofstream wfile(write_file, ios::app);
-        if (!wfile.is_open())
-        {
-          runtime_error("Error opening output file: " + write_file);
-        }
-
-        print_sym_min(wfile, order, no_cycles, eps1, eps2, wi, n_iter, Ls, lambda, 1);
-        print_sym_min(cout, order, no_cycles, eps1, eps2, wi, n_iter, Ls, lambda, 1);
-
-        print_sym_min1(wfile, scheme, a_init, b_init, mini.a_vec, mini.b_vec);
-        print_sym_min1(cout, scheme, a_init, b_init, mini.a_vec, mini.b_vec);
-
-        wfile << "\n\n";
-      }
-      else
-      {
-        print_sym_min(cout, order, no_cycles, eps1, eps2, wi, n_iter, Ls, lambda, 1);
-        print_sym_min1(cout, scheme, a_init, b_init, mini.a_vec, mini.b_vec);
-      }
-
-      cout << string(81, '=') << endl;
-    }
-    else if constexpr (is_same_v<Scalar, long double> || is_same_v<Scalar, complex<long double>>)
-    {
-      Scheme<long double> scheme;
-      if (!load_dir.empty())
-      {
-        scheme = Scheme<long double>(load_dir, order, no_cycles, verbose);
-      }
-      else
-      {
-        scheme = Scheme<long double>(order, no_cycles, verbose);
-        scheme.iterate();
-      }
-
-      Minimization<Vec> minim(a_init, b_init, scheme, W_vec, n_iter, eps1, Ls, bderivs);
-      MinResult<Vec> mini{minim.minimize(lambda, nullptr, verbose)};
-
-      if (verbose)
-      {
-        mini.display();
-        cout << string(81, '-') << endl;
-      }
-
-      if (!save_dir.empty())
-      {
-        string write_file = save_dir + "sym_minim_minimize_q" + to_string(no_cycles) + ".out";
-        ofstream wfile(write_file, ios::app);
-        if (!wfile.is_open())
-        {
-          runtime_error("Error opening output file: " + write_file);
-        }
-
-        print_sym_min(wfile, order, no_cycles, eps1, eps2, wi, n_iter, Ls, lambda, 1);
-        print_sym_min(cout, order, no_cycles, eps1, eps2, wi, n_iter, Ls, lambda, 1);
-
-        print_sym_min1(wfile, scheme, a_init, b_init, mini.a_vec, mini.b_vec);
-        print_sym_min1(cout, scheme, a_init, b_init, mini.a_vec, mini.b_vec);
-
-        wfile << "\n\n";
-      }
-      else
-      {
-        print_sym_min(cout, order, no_cycles, eps1, eps2, wi, n_iter, Ls, lambda, 1);
-        print_sym_min1(cout, scheme, a_init, b_init, mini.a_vec, mini.b_vec);
-      }
-
-      cout << string(81, '=') << endl;
-    }
-  }
-  else if (method == "min_twostep")
-  {
-    cout << "Running Symbolic Minimization (min_twostep) for order " << order << " and number of cycles q = " << no_cycles << endl;
-    cout << string(81, '=') << endl;
-
-    if constexpr (is_same_v<Scalar, double> || is_same_v<Scalar, complex<double>>)
-    {
-      Scheme<double> scheme;
-      if (!load_dir.empty())
-      {
-        scheme = Scheme<double>(load_dir, order, no_cycles, verbose);
-      }
-      else
-      {
-        scheme = Scheme<double>(order, no_cycles, verbose);
-        scheme.iterate();
-      }
-
-      Minimization<Vec> minim(a_init, b_init, scheme, W_vec, n_iter, eps1, Ls, bderivs);
-      MinResult<Vec> mini{minim.min_twostep(lambda, &eps2, verbose, freeze)};
-
-      if (verbose)
-      {
-        mini.display();
-        cout << string(81, '-') << endl;
-      }
-
-      if (!save_dir.empty())
-      {
-        string write_file = save_dir + "sym_minim_minimize_q" + to_string(no_cycles) + ".out";
-        ofstream wfile(write_file, ios::app);
-        if (!wfile.is_open())
-        {
-          runtime_error("Error opening output file: " + write_file);
-        }
-
-        print_sym_min(wfile, order, no_cycles, eps1, eps2, wi, n_iter, Ls, lambda, 2);
-        print_sym_min(cout, order, no_cycles, eps1, eps2, wi, n_iter, Ls, lambda, 2);
-
-        print_sym_min1(wfile, scheme, a_init, b_init, mini.a_vec, mini.b_vec);
-        print_sym_min1(cout, scheme, a_init, b_init, mini.a_vec, mini.b_vec);
-
-        wfile << "\n\n";
-      }
-      else
-      {
-        print_sym_min(cout, order, no_cycles, eps1, eps2, wi, n_iter, Ls, lambda, 2);
-        print_sym_min1(cout, scheme, a_init, b_init, mini.a_vec, mini.b_vec);
-      }
-
-      cout << string(81, '=') << endl;
-    }
-    else if constexpr (is_same_v<Scalar, long double> || is_same_v<Scalar, complex<long double>>)
-    {
-      Scheme<long double> scheme;
-      if (!load_dir.empty())
-      {
-        scheme = Scheme<long double>(load_dir, order, no_cycles, verbose);
-      }
-      else
-      {
-        scheme = Scheme<long double>(order, no_cycles, verbose);
-        scheme.iterate();
-      }
-
-      Minimization<Vec> minim(a_init, b_init, scheme, W_vec, n_iter, eps1, Ls, bderivs);
-      MinResult<Vec> mini{minim.min_twostep(lambda, &eps2, verbose, freeze)};
-
-      if (verbose)
-      {
-        mini.display();
-        cout << string(81, '-') << endl;
-      }
-
-      if (!save_dir.empty())
-      {
-        string write_file = save_dir + "sym_minim_minimize_q" + to_string(no_cycles) + ".out";
-        ofstream wfile(write_file, ios::app);
-        if (!wfile.is_open())
-        {
-          runtime_error("Error opening output file: " + write_file);
-        }
-
-        print_sym_min(wfile, order, no_cycles, eps1, eps2, wi, n_iter, Ls, lambda, 2);
-        print_sym_min(cout, order, no_cycles, eps1, eps2, wi, n_iter, Ls, lambda, 2);
-
-        print_sym_min1(wfile, scheme, a_init, b_init, mini.a_vec, mini.b_vec);
-        print_sym_min1(cout, scheme, a_init, b_init, mini.a_vec, mini.b_vec);
-
-        wfile << "\n\n";
-      }
-      else
-      {
-        print_sym_min(cout, order, no_cycles, eps1, eps2, wi, n_iter, Ls, lambda, 2);
-        print_sym_min1(cout, scheme, a_init, b_init, mini.a_vec, mini.b_vec);
-      }
-
-      cout << string(81, '=') << endl;
-    }
-  }
-  else if (method == "find")
-  {
-    cout << "Running Symbolic Minimization (find, " << steps << ") for order " << order << " and number of cycles q = " << no_cycles << endl;
-    cout << string(88, '=') << endl;
-
-    pair<array<vector<Vec>, 4>, vector<int>> minima;
-
-    if constexpr (is_same_v<Scalar, double> || is_same_v<Scalar, complex<double>>)
-    {
-      Scheme<double> scheme;
-      if (!load_dir.empty())
-      {
-        scheme = Scheme<double>(load_dir, order, no_cycles, verbose);
-      }
-      else
-      {
-        scheme = Scheme<double>(order, no_cycles, verbose);
-        scheme.iterate();
-      }
-
-      Minimization<Vec> minim(scheme, W_vec, n_iter, eps1, Ls, bderivs);
-
-      if (steps == 1)
-      {
-        minima = minim.find(N, lambda, steps, mu, sigma, nullptr, true, verbose, tol, freeze);
-      }
-      else if (steps == 2)
-      {
-        minima = minim.find(N, lambda, steps, mu, sigma, &eps2, true, verbose, tol, freeze);
-      }
-    }
-    else if constexpr (is_same_v<Scalar, long double> || is_same_v<Scalar, complex<long double>>)
-    {
-      Scheme<long double> scheme;
-      if (!load_dir.empty())
-      {
-        scheme = Scheme<long double>(load_dir, order, no_cycles, verbose);
-      }
-      else
-      {
-        scheme = Scheme<long double>(order, no_cycles, verbose);
-        scheme.iterate();
-      }
-
-      Minimization<Vec> minim(scheme, W_vec, n_iter, eps1, Ls, bderivs);
-
-      if (steps == 1)
-      {
-        minima = minim.find(N, lambda, steps, mu, sigma, nullptr, true, verbose, tol, freeze);
-      }
-      else if (steps == 2)
-      {
-        minima = minim.find(N, lambda, steps, mu, sigma, &eps2, true, verbose, tol, freeze);
-      }
-    }
-
-    array<vector<Vec>, 4> ab_vecs{minima.first};
-
-    int sum_convs{accumulate(minima.second.begin(), minima.second.end(), 0)};
-    // Write to file if specified otherwise just output to terminal
-    if (!save_dir.empty())
-    {
-      string write_file = save_dir + "sym_minim_find_q" + to_string(no_cycles) + ".out";
-      ofstream wfile(write_file, ios::app);
-      if (!wfile.is_open())
-      {
-        runtime_error("Error opening output file: " + write_file);
-      }
-
-      print_sym_find(cout, order, no_cycles, eps1, eps2, wi, n_iter, Ls, lambda, N, steps, mu, sigma, sum_convs, tol);
-      print_sym_find(wfile, order, no_cycles, eps1, eps2, wi, n_iter, Ls, lambda, N, steps, mu, sigma, sum_convs, tol);
-
-      double ratio;
-      RealT eff2;
-      RealT eff4;
-      RealT eff6;
-      RealT eff8;
-      int tracker{0};
-      for (size_t i{0}; i < ab_vecs[0].size(); ++i)
-      {
-        NScheme<Vec> scheme(8, no_cycles, ab_vecs[0][i], ab_vecs[2][i]);
-        scheme.iterate();
-
-        ratio = (static_cast<double>(minima.second[i]) / static_cast<double>(N)) * 100.0;
-        eff2 = 1 / (pow(no_cycles, 2) * sqrt(scheme.err2(2)));
-        eff4 = 1 / (pow(no_cycles, 4) * sqrt(scheme.err2(4)));
-        eff6 = 1 / (pow(no_cycles, 6) * sqrt(scheme.err2(6)));
-        eff8 = 1 / (pow(no_cycles, 8) * sqrt(scheme.err2(8)));
-
-        bool pass{true};
-        if (order == 4 && scheme.err2(2) > threshold)
-        {
-          pass = false;
-        }
-        else if (order == 6 && scheme.err2(2) > threshold && scheme.err2(4) > threshold)
-        {
-          pass = false;
-        }
-
-        if (pass)
-        {
-          tracker += 1;
-          sum_convs -= minima.second[i];
-
-          print_find1(cout, tracker, ratio, eff2, eff4, eff6, eff8);
-          print_find1(wfile, tracker, ratio, eff2, eff4, eff6, eff8);
-
-          print_find2(cout, ab_vecs[0][i], ab_vecs[2][i]);
-          print_find2(wfile, ab_vecs[0][i], ab_vecs[2][i]);
-        }
-      }
-
-      cout << "Ratio of discarded samples: " << fixed << setprecision(2) << (static_cast<double>(sum_convs) / static_cast<double>(N)) * 100.0 << "%" << endl;
-      cout << string(38, '-') << endl;
-
-      wfile << "Ratio of discarded samples: " << fixed << setprecision(2) << (static_cast<double>(sum_convs) / static_cast<double>(N)) * 100.0 << "%" << endl;
-      wfile << string(38, '-') << endl;
-
-      wfile << "\n\n";
-
-      wfile.close();
-    }
-    else
-    {
-
-      print_sym_find(cout, order, no_cycles, eps1, eps2, wi, n_iter, Ls, lambda, N, steps, mu, sigma, sum_convs, tol);
-
-      double ratio;
-      RealT eff2;
-      RealT eff4;
-      RealT eff6;
-      RealT eff8;
-      int tracker{0};
-      for (size_t i{0}; i < ab_vecs[0].size(); ++i)
-      {
-        NScheme<Vec> scheme(8, no_cycles, ab_vecs[0][i], ab_vecs[2][i]);
-        scheme.iterate();
-
-        ratio = (static_cast<double>(minima.second[i]) / static_cast<double>(N)) * 100.0;
-        eff2 = 1 / (pow(no_cycles, 2) * sqrt(scheme.err2(2)));
-        eff4 = 1 / (pow(no_cycles, 4) * sqrt(scheme.err2(4)));
-        eff6 = 1 / (pow(no_cycles, 6) * sqrt(scheme.err2(6)));
-        eff8 = 1 / (pow(no_cycles, 8) * sqrt(scheme.err2(8)));
-
-        bool pass{true};
-        if (order == 4 && scheme.err2(2) > threshold)
-        {
-          pass = false;
-        }
-        else if (order == 6 && scheme.err2(2) > threshold && scheme.err2(4) > threshold)
-        {
-          pass = false;
-        }
-
-        if (pass)
-        {
-          tracker += 1;
-          sum_convs -= minima.second[i];
-
-          print_find1(cout, tracker, ratio, eff2, eff4, eff6, eff8);
-          print_find2(cout, ab_vecs[0][i], ab_vecs[2][i]);
-        }
-      }
-
-      cout << "Ratio of discarded samples: " << fixed << setprecision(2) << (static_cast<double>(sum_convs) / static_cast<double>(N)) * 100.0 << "%" << endl;
-      cout << string(38, '-') << endl;
-    }
-    cout << string(88, '=') << endl;
-  }
-  else
-  {
-    runtime_error("Method not supported!");
-  }
-}
-
-
 // Numeric Minimization
 // Methods: - minimize: minimize the computed scheme manifold once using initial vector a_vec, b_vec
 //          - min_twostep: minimize the computed scheme manifold twice (constraint minimization in the 2. step)
@@ -4658,6 +4112,9 @@ void IO::num_minim()
   int n_iter{500};                 // Number of iterations before quitting if convergence isn't achieved
   array<RealT, 2> Ls{{9.0, 11.0}}; // L_up, L_down
   RealT lambda{0.25};              // Damping parameter
+
+  // Geodesic acceleration parameters
+  RealT geod_eps{0.1}; // Convergence parameter for the geodesic acceleration (2|a|/|v| <= geod_eps)
 
   // Minima finder parameters
   int N;                  // Number of initial conditions
@@ -4738,6 +4195,10 @@ void IO::num_minim()
     else if (key == "lambda")
     {
       lambda = parse_value<RealT>(value);
+    }
+    else if (key == "geod_eps")
+    {
+      geod_eps = parse_value<RealT>(value);
     }
     else if (key == "verbose")
     {
@@ -4867,6 +4328,48 @@ void IO::num_minim()
 
     cout << string(81, '=') << endl;
   }
+  else if (method == "minimize_geodesic")
+  {
+    cout << "Running Numeric Minimization (minimize_geodesic) for order " << order << " and number of cycles q = " << no_cycles << endl;
+    cout << string(81, '=') << endl;
+
+    NMinimization<Vec> minim(a_init, b_init, step, order, no_cycles, W_vec, n_iter, eps1, Ls);
+    MinResult<Vec> mini{minim.minimize_geodesic(lambda, nullptr, verbose, geod_eps)};
+
+    if (verbose)
+    {
+      mini.display();
+      cout << string(81, '-') << endl;
+    }
+
+    NScheme<Vec> scheme(8, no_cycles, mini.a_vec, mini.b_vec);
+    scheme.iterate();
+
+    if (!save_dir.empty())
+    {
+      string write_file = save_dir + "num_minimize_q" + to_string(no_cycles) + ".out";
+      ofstream wfile(write_file, ios::app);
+      if (!wfile.is_open())
+      {
+        runtime_error("Error opening output file: " + write_file);
+      }
+
+      print_num_min(wfile, order, no_cycles, eps1, eps2, wi, step, n_iter, Ls, lambda, 1, &geod_eps);
+      print_num_min(cout, order, no_cycles, eps1, eps2, wi, step, n_iter, Ls, lambda, 1, &geod_eps);
+
+      print_num_min1(wfile, scheme, a_init, b_init);
+      print_num_min1(cout, scheme, a_init, b_init);
+
+      wfile << "\n\n";
+    }
+    else
+    {
+      print_num_min(cout, order, no_cycles, eps1, eps2, wi, step, n_iter, Ls, lambda, 1, &geod_eps);
+      print_num_min1(cout, scheme, a_init, b_init);
+    }
+
+    cout << string(81, '=') << endl;
+  }
   else if (method == "minimize_origin")
   {
     cout << "Running Numeric Minimization (minimize_origin) for order " << order << " and number of cycles q = " << no_cycles << endl;
@@ -4960,6 +4463,49 @@ void IO::num_minim()
     else
     {
       print_num_min(cout, order, no_cycles, eps1, eps2, wi, step, n_iter, Ls, lambda, 2);
+
+      print_num_min1(cout, scheme, a_init, b_init);
+    }
+
+    cout << string(81, '=') << endl;
+  }
+  else if (method == "min_twostep_geodesic")
+  {
+    cout << "Running Numeric Minimization (min_twostep_geodesic) for order " << order << " and number of cycles q = " << no_cycles << endl;
+    cout << string(81, '=') << endl;
+
+    NMinimization<Vec> minim(a_init, b_init, step, order, no_cycles, W_vec, n_iter, eps1, Ls);
+    MinResult<Vec> mini{minim.min_twostep_geodesic(lambda, &eps2, verbose, freeze, geod_eps)};
+
+    if (verbose)
+    {
+      mini.display();
+      cout << string(81, '-') << endl;
+    }
+
+    NScheme<Vec> scheme(8, no_cycles, mini.a_vec, mini.b_vec);
+    scheme.iterate();
+
+    if (!save_dir.empty())
+    {
+      string write_file = save_dir + "num_min_twostep_q" + to_string(no_cycles) + ".out";
+      ofstream wfile(write_file, ios::app);
+      if (!wfile.is_open())
+      {
+        runtime_error("Error opening output file: " + write_file);
+      }
+
+      print_num_min(wfile, order, no_cycles, eps1, eps2, wi, step, n_iter, Ls, lambda, 2, &geod_eps);
+      print_num_min(cout, order, no_cycles, eps1, eps2, wi, step, n_iter, Ls, lambda, 2, &geod_eps);
+
+      print_num_min1(wfile, scheme, a_init, b_init);
+      print_num_min1(cout, scheme, a_init, b_init);
+
+      wfile << "\n\n";
+    }
+    else
+    {
+      print_num_min(cout, order, no_cycles, eps1, eps2, wi, step, n_iter, Ls, lambda, 2, &geod_eps);
 
       print_num_min1(cout, scheme, a_init, b_init);
     }
@@ -5161,6 +4707,144 @@ void IO::num_minim()
     }
     cout << string(88, '=') << endl;
   }
+  else if (method == "find_geodesic")
+  {
+    cout << "Running Numeric Minimization (find_geodesic, " << steps << ") for order " << order << " and number of cycles q = " << no_cycles << endl;
+    cout << string(88, '=') << endl;
+
+    NMinimization<Vec> minim(step, order, no_cycles, W_vec, n_iter, eps1, Ls);
+    pair<array<vector<Vec>, 4>, vector<int>> minima;
+
+    if (steps == 1)
+    {
+      minima = minim.find_geodesic(N, lambda, steps, mu, sigma, nullptr, true, verbose, tol, freeze, geod_eps);
+    }
+    else if (steps == 2)
+    {
+      minima = minim.find_geodesic(N, lambda, steps, mu, sigma, &eps2, true, verbose, tol, freeze, geod_eps);
+    }
+
+    array<vector<Vec>, 4> ab_vecs{minima.first};
+
+    int sum_convs{accumulate(minima.second.begin(), minima.second.end(), 0)};
+    // Write to file if specified otherwise just output to terminal
+    if (!save_dir.empty())
+    {
+      string write_file = save_dir + "num_minim_find_q" + to_string(no_cycles) + ".out";
+      ofstream wfile(write_file, ios::app);
+      if (!wfile.is_open())
+      {
+        runtime_error("Error opening output file: " + write_file);
+      }
+
+      print_num_find(cout, order, no_cycles, eps1, eps2, wi, step, n_iter, Ls, lambda, N, steps, mu, sigma, sum_convs, tol, &geod_eps);
+      print_num_find(wfile, order, no_cycles, eps1, eps2, wi, step, n_iter, Ls, lambda, N, steps, mu, sigma, sum_convs, tol, &geod_eps);
+
+      double ratioN;
+      RealT eff2;
+      RealT eff4;
+      RealT eff6;
+      RealT eff8;
+      int tracker{0};
+      for (size_t i{0}; i < ab_vecs[0].size(); ++i)
+      {
+        NScheme<Vec> scheme(8, no_cycles, ab_vecs[0][i], ab_vecs[2][i]);
+        scheme.iterate();
+
+        ratioN = (static_cast<double>(minima.second[i]) / static_cast<double>(N)) * 100.0;
+        eff2 = 1 / (pow(no_cycles, 2) * sqrt(scheme.err2(2)));
+        eff4 = 1 / (pow(no_cycles, 4) * sqrt(scheme.err2(4)));
+        eff6 = 1 / (pow(no_cycles, 6) * sqrt(scheme.err2(6)));
+        eff8 = 1 / (pow(no_cycles, 8) * sqrt(scheme.err2(8)));
+
+        bool pass{true};
+        if (order == 4 && scheme.err2(2) > threshold)
+        {
+          pass = false;
+        }
+        else if (order == 6 && scheme.err2(2) > threshold && scheme.err2(4) > threshold)
+        {
+          pass = false;
+        }
+        else if (order == 8 && scheme.err2(2) > threshold && scheme.err2(4) > threshold && scheme.err2(6) > threshold)
+        {
+          pass = false;
+        }
+
+        if (pass)
+        {
+          tracker += 1;
+          sum_convs -= minima.second[i];
+
+          print_find1(cout, tracker, ratioN, eff2, eff4, eff6, eff8);
+          print_find1(wfile, tracker, ratioN, eff2, eff4, eff6, eff8);
+
+          print_find2(cout, ab_vecs[0][i], ab_vecs[2][i]);
+          print_find2(wfile, ab_vecs[0][i], ab_vecs[2][i]);
+        }
+      }
+
+      cout << "Ratio of discarded samples: " << fixed << setprecision(2) << (static_cast<double>(sum_convs) / static_cast<double>(N)) * 100.0 << "%" << endl;
+      cout << string(38, '-') << endl;
+
+      wfile << "Ratio of discarded samples: " << fixed << setprecision(2) << (static_cast<double>(sum_convs) / static_cast<double>(N)) * 100.0 << "%" << endl;
+      wfile << string(38, '-') << endl;
+
+      wfile << "\n\n";
+
+      wfile.close();
+    }
+    else
+    {
+
+      print_num_find(cout, order, no_cycles, eps1, eps2, wi, step, n_iter, Ls, lambda, N, steps, mu, sigma, sum_convs, tol, &geod_eps);
+
+      double ratioN;
+      RealT eff2;
+      RealT eff4;
+      RealT eff6;
+      RealT eff8;
+      int tracker{0};
+      for (size_t i{0}; i < ab_vecs[0].size(); ++i)
+      {
+        NScheme<Vec> scheme(8, no_cycles, ab_vecs[0][i], ab_vecs[2][i]);
+        scheme.iterate();
+
+        ratioN = (static_cast<double>(minima.second[i]) / static_cast<double>(N)) * 100.0;
+        eff2 = 1 / (pow(no_cycles, 2) * sqrt(scheme.err2(2)));
+        eff4 = 1 / (pow(no_cycles, 4) * sqrt(scheme.err2(4)));
+        eff6 = 1 / (pow(no_cycles, 6) * sqrt(scheme.err2(6)));
+        eff8 = 1 / (pow(no_cycles, 8) * sqrt(scheme.err2(8)));
+
+        bool pass{true};
+        if (order == 4 && scheme.err2(2) > threshold)
+        {
+          pass = false;
+        }
+        else if (order == 6 && scheme.err2(2) > threshold && scheme.err2(4) > threshold)
+        {
+          pass = false;
+        }
+        else if (order == 8 && scheme.err2(2) > threshold && scheme.err2(4) > threshold && scheme.err2(6) > threshold)
+        {
+          pass = false;
+        }
+
+        if (pass)
+        {
+          tracker += 1;
+          sum_convs -= minima.second[i];
+
+          print_find1(cout, tracker, ratioN, eff2, eff4, eff6, eff8);
+          print_find2(cout, ab_vecs[0][i], ab_vecs[2][i]);
+        }
+      }
+
+      cout << "Ratio of discarded samples: " << fixed << setprecision(2) << (static_cast<double>(sum_convs) / static_cast<double>(N)) * 100.0 << "%" << endl;
+      cout << string(38, '-') << endl;
+    }
+    cout << string(88, '=') << endl;
+  }
   else
   {
     runtime_error("Method not supported!");
@@ -5171,36 +4855,30 @@ void IO::num_minim()
 // Explicit routine instantiations for double
 template void IO::sym_scheme<double>();
 template void IO::num_scheme<double>();
-template void IO::sym_minim<double>();
 template void IO::num_minim<double>();
 
 // Explicit routine instantiations for complex<double>
 template void IO::sym_scheme<complex<double>>();
 template void IO::num_scheme<complex<double>>();
-template void IO::sym_minim<complex<double>>();
 template void IO::num_minim<complex<double>>();
 
 
 // Explicit routine instantiations for long double
 template void IO::sym_scheme<long double>();
 template void IO::num_scheme<long double>();
-template void IO::sym_minim<long double>();
 template void IO::num_minim<long double>();
 
 // Explicit routine instantiations for complex<long double>
 template void IO::sym_scheme<complex<long double>>();
 template void IO::num_scheme<complex<long double>>();
-template void IO::sym_minim<complex<long double>>();
 template void IO::num_minim<complex<long double>>();
 
 // Explicit routine instantiations for quad
 //template void IO::sym_scheme<quad>();
 template void IO::num_scheme<quad>();
-//template void IO::sym_minim<quad>();
 template void IO::num_minim<quad>();
 
 // Explicit routine instantiations for complex<quad>
 //template void IO::sym_scheme<complex<quad>>();
 template void IO::num_scheme<complex<quad>>();
-//template void IO::sym_minim<complex<quad>>();
 template void IO::num_minim<complex<quad>>();
