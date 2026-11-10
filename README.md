@@ -12,6 +12,7 @@ For questions concerning the code contact: malezic@hiskp.uni-bonn.de
 
 The main part of the derivations for Trotterizations are the recursive formulae found in a Mathematica notebook `Efficient_Trotterizations.nb` within [Recursive_formulae](Code/Recursive_formulae).
 In the same folder we gather the results of the recursive formulae in a slightly more readable form `Recursive_formulae.pdf`.
+For those without access to Mathematica, the same derivation (up to order $n = 8$) is available as an open-source Python package `pybch` in the same folder, see `README-pybch.md`.
 
 Applying the formulae it is possible to construct polynomial manifolds, which are to be minimized in order to find efficient schemes.
 Computation of such manifolds for 2nd and 4th order and their visualizations can be found in [Manifolds](Code/Manifolds) directory, both as Mathematica notebooks and as standalone PDF images.

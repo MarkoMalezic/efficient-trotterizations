@@ -19,3 +19,8 @@ Mathematica is avaliable at https://www.wolfram.com/mathematica/
 These scripts are licensed under the same license as the rest of the
 repository (MIT License). Running them requires a licensed copy of Wolfram Mathematica.
 No rights to Mathematica itself are granted by this repository.
+
+SymPy
+-----
+The Python package in Code/Recursive_formulae/pybch uses SymPy for symbolic output.
+SymPy is available at https://www.sympy.org/ and is licensed under the BSD 3-Clause License.
