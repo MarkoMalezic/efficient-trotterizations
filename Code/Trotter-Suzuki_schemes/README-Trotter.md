@@ -55,7 +55,7 @@ Numerically evaluates a scheme for some evaluation parameters a_eval and b_eval,
 Returns the theoretical error and the efficiency per order.
 
 Parameters:
-- save_dir (string): Path to save directory
+- save_dir (string): Path to save directory (created if it does not exist; relative paths are relative to the directory the program is run from)
 - order (2, 4, 6, 8): Order of the scheme
 - no_cycles (1, 2, 3, ...): Number of cycles
 - a_eval (vector<scalar_type>): A vector of scheme evaluation parameters a
@@ -66,7 +66,7 @@ Parameters:
 
 Numerically minimizes a scheme according to a subroutine (method).
 The shared parameters between schemes are:
-- save_dir (string): Path to save directory
+- save_dir (string): Path to save directory (created if it does not exist; relative paths are relative to the directory the program is run from)
 - order (2, 4, 6, 8): Order of the scheme
 - no_cycles (1, 2, 3, ...): Number of cycles
 - method (string): Subroutine name

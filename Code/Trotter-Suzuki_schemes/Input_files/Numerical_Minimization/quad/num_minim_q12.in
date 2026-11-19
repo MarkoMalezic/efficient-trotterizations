@@ -4,7 +4,7 @@ mode = 0
 scalar_type = quad
 
 # Save directory path (if empty no writing occurs)
-save_dir = /home/mmalezic_hpc/Projects/Trotterization/Code/Coefficients/Data/Numerical_Minimization/quad/
+save_dir = ../Data/Numerical_Minimization/quad/
 
 # General parameters
 order = 6

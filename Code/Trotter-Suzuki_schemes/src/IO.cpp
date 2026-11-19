@@ -1,4 +1,16 @@
 #include "IO.h"
+#include <filesystem>
+
+// Create the directories of an output file if they do not exist yet (errors are reported when opening the file)
+static void create_parent_dirs(const string &file)
+{
+  std::filesystem::path dir{std::filesystem::path(file).parent_path()};
+  if (!dir.empty())
+  {
+    std::error_code ec;
+    std::filesystem::create_directories(dir, ec);
+  }
+}
 
 // Helper function to trim a single line in the input file
 string trim(const string &str)
@@ -3860,6 +3872,7 @@ void IO::sym_scheme()
         if (!save_dir.empty())
         {
           string write_file = save_dir + "sym_scheme_q" + to_string(no_cycles) + ".out";
+          create_parent_dirs(write_file);
           ofstream wfile(write_file, ios::app);
           if (!wfile.is_open())
           {
@@ -3901,6 +3914,7 @@ void IO::sym_scheme()
         if (!save_dir.empty())
         {
           string write_file = save_dir + "sym_scheme_q" + to_string(no_cycles) + ".out";
+          create_parent_dirs(write_file);
           ofstream wfile(write_file, ios::app);
           if (!wfile.is_open())
           {
@@ -3955,6 +3969,7 @@ void IO::sym_scheme()
         if (!save_dir.empty())
         {
           string write_file = save_dir + "sym_scheme_q" + to_string(no_cycles) + ".out";
+          create_parent_dirs(write_file);
           ofstream wfile(write_file, ios::app);
           if (!wfile.is_open())
           {
@@ -4111,6 +4126,7 @@ void IO::num_scheme()
   if (!save_dir.empty())
   {
     string write_file = save_dir + "num_scheme_q" + to_string(no_cycles) + ".out";
+    create_parent_dirs(write_file);
     ofstream wfile(write_file, ios::app);
     if (!wfile.is_open())
     {
@@ -4374,6 +4390,7 @@ void IO::num_minim()
     if (!save_dir.empty())
     {
       string write_file = save_dir + "num_minimize_q" + to_string(no_cycles) + ".out";
+      create_parent_dirs(write_file);
       ofstream wfile(write_file, ios::app);
       if (!wfile.is_open())
       {
@@ -4416,6 +4433,7 @@ void IO::num_minim()
     if (!save_dir.empty())
     {
       string write_file = save_dir + "num_minimize_q" + to_string(no_cycles) + ".out";
+      create_parent_dirs(write_file);
       ofstream wfile(write_file, ios::app);
       if (!wfile.is_open())
       {
@@ -4472,6 +4490,7 @@ void IO::num_minim()
     if (!save_dir.empty())
     {
       string write_file = save_dir + "num_minimize_origin_q" + to_string(no_cycles) + ".out";
+      create_parent_dirs(write_file);
       ofstream wfile(write_file, ios::app);
       if (!wfile.is_open())
       {
@@ -4514,6 +4533,7 @@ void IO::num_minim()
     if (!save_dir.empty())
     {
       string write_file = save_dir + "num_min_twostep_q" + to_string(no_cycles) + ".out";
+      create_parent_dirs(write_file);
       ofstream wfile(write_file, ios::app);
       if (!wfile.is_open())
       {
@@ -4557,6 +4577,7 @@ void IO::num_minim()
     if (!save_dir.empty())
     {
       string write_file = save_dir + "num_min_twostep_q" + to_string(no_cycles) + ".out";
+      create_parent_dirs(write_file);
       ofstream wfile(write_file, ios::app);
       if (!wfile.is_open())
       {
@@ -4614,6 +4635,7 @@ void IO::num_minim()
     if (!save_dir.empty())
     {
       string write_file = save_dir + "num_min_twostep_origin_q" + to_string(no_cycles) + ".out";
+      create_parent_dirs(write_file);
       ofstream wfile(write_file, ios::app);
       if (!wfile.is_open())
       {
@@ -4661,6 +4683,7 @@ void IO::num_minim()
     if (!save_dir.empty())
     {
       string write_file = save_dir + "num_minim_find_q" + to_string(no_cycles) + ".out";
+      create_parent_dirs(write_file);
       ofstream wfile(write_file, ios::app);
       if (!wfile.is_open())
       {
@@ -4799,6 +4822,7 @@ void IO::num_minim()
     if (!save_dir.empty())
     {
       string write_file = save_dir + "num_minim_find_q" + to_string(no_cycles) + ".out";
+      create_parent_dirs(write_file);
       ofstream wfile(write_file, ios::app);
       if (!wfile.is_open())
       {
