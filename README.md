@@ -62,7 +62,7 @@ Further details can be found in `README-Heisenberg.md`.
 ### Quantum circuits
 
 Inside [Quantum_circuits](Code/Quantum_circuits) we implement the schemes as quantum circuits for the Heisenberg model and simulate them with and without gate noise.
-The circuits are built with our Qiskit plugin [qiskit-omelyan](https://github.com/MarkoMalezic/qiskit-omelyan), which implements the algorithm described in [arXiv:2602.21145](https://arxiv.org/abs/2602.21145), and simulated with Qiskit Aer.
+The circuits are built with our Qiskit plugin [qiskit-omelyan](https://github.com/MarkoMalezic/qiskit-omelyan) (version 1.0.0 or later, [10.5281/zenodo.24371684](https://doi.org/10.5281/zenodo.24371684)), which implements the algorithm described in [arXiv:2602.21145](https://arxiv.org/abs/2602.21145), and simulated with Qiskit Aer.
 To run this code one needs to run: `python noisy_circuits.py`, where the model, scheme and noise are set inside the script.
 More details inside `README-Circuits.md`.
 

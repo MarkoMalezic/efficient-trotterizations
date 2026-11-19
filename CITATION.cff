@@ -54,3 +54,11 @@ references:
       - type: other
         value: "arXiv:2602.21145"
         description: "arXiv preprint"
+  - type: software
+    title: "qiskit-omelyan"
+    authors:
+      - given-names: Marko
+        family-names: Maležič
+    doi: "10.5281/zenodo.24371684"
+    repository-code: "https://github.com/MarkoMalezic/qiskit-omelyan"
+    url: "https://pypi.org/project/qiskit-omelyan/"
