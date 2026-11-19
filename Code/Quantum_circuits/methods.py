@@ -188,7 +188,7 @@ def Noise_analysis(state, circuit, options, U_exact, noise=(1e-6, 1e-5), mitigat
   }
 
   if mitigate:
-    from mitiq.zne.inference import RichardsonFactory  # only needed for mitigate=True; requires the .venv_mitiq environment
+    from mitiq.zne.inference import RichardsonFactory  # only needed for mitigate=True; requires mitiq, which pins numpy<2 (see the README)
     factory = RichardsonFactory(scale_factors=[2 * k + 1 for k in num_folds])
     for k in num_folds:
       fid = noisy_fid if k == 0 else noisy_fidelity(fold_circuit(evo_circuit, k), reference)[1]
