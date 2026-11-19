@@ -40,6 +40,7 @@ double parse_value(const string &str)
   return value;
 }
 
+#if defined(USE_COMPLEX)
 // Specialization for complex<double>
 template <>
 complex<double> parse_value(const string &str)
@@ -55,6 +56,7 @@ complex<double> parse_value(const string &str)
   }
   return complex<double>(real, imag);
 }
+#endif // defined(USE_COMPLEX)
 
 // Specialization for long double
 template <>
@@ -66,6 +68,7 @@ long double parse_value(const string &str)
   return value;
 }
 
+#if defined(USE_COMPLEX)
 // Specialization for complex<long double>
 template <>
 complex<long double> parse_value(const string &str)
@@ -81,7 +84,9 @@ complex<long double> parse_value(const string &str)
   }
   return complex<long double>(real, imag);
 }
+#endif // defined(USE_COMPLEX)
 
+#if defined(USE_QUAD)
 // Specialization for quad
 template <>
 quad parse_value(const string &str)
@@ -91,7 +96,9 @@ quad parse_value(const string &str)
   iss >> value;
   return value;
 }
+#endif // defined(USE_QUAD)
 
+#if defined(USE_QUAD) && defined(USE_COMPLEX)
 // Specialization for complex<quad>
 template <>
 complex<quad> parse_value(const string &str)
@@ -107,6 +114,7 @@ complex<quad> parse_value(const string &str)
   }
   return complex<quad>(real, imag);
 }
+#endif // defined(USE_QUAD) && defined(USE_COMPLEX)
 
 // Helper function to parse a list to extract vectors and arrays
 // Specialization for array<double, 2>
@@ -147,6 +155,7 @@ array<long double, 2> parse_list(const string &str)
   return list;
 }
 
+#if defined(USE_QUAD)
 // Specialization for array<quad, 2>
 template <>
 array<quad, 2> parse_list(const string &str)
@@ -165,6 +174,7 @@ array<quad, 2> parse_list(const string &str)
   }
   return list;
 }
+#endif // defined(USE_QUAD)
 
 // Specialization for array<double, 4>
 template <>
@@ -204,6 +214,7 @@ array<long double, 4> parse_list(const string &str)
   return list;
 }
 
+#if defined(USE_QUAD)
 // Specialization for array<quad, 4>
 template <>
 array<quad, 4> parse_list(const string &str)
@@ -222,6 +233,7 @@ array<quad, 4> parse_list(const string &str)
   }
   return list;
 }
+#endif // defined(USE_QUAD)
 
 // Specialization for vector<double>
 template <>
@@ -238,6 +250,7 @@ vector<double> parse_list(const string &str)
   return list;
 }
 
+#if defined(USE_COMPLEX)
 // Specialization for vector<complex<double>>
 template <>
 vector<complex<double>> parse_list(const string &str)
@@ -252,6 +265,7 @@ vector<complex<double>> parse_list(const string &str)
   }
   return list;
 }
+#endif // defined(USE_COMPLEX)
 
 // Specialization for vector<long double>
 template <>
@@ -268,6 +282,7 @@ vector<long double> parse_list(const string &str)
   return list;
 }
 
+#if defined(USE_COMPLEX)
 // Specialization for vector<complex<long double>>
 template <>
 vector<complex<long double>> parse_list(const string &str)
@@ -282,7 +297,9 @@ vector<complex<long double>> parse_list(const string &str)
   }
   return list;
 }
+#endif // defined(USE_COMPLEX)
 
+#if defined(USE_QUAD)
 // Specialization for vector<quad>
 template <>
 vector<quad> parse_list(const string &str)
@@ -298,7 +315,9 @@ vector<quad> parse_list(const string &str)
   }
   return list;
 }
+#endif // defined(USE_QUAD)
 
+#if defined(USE_QUAD) && defined(USE_COMPLEX)
 // Specialization for vector<complex<quad>>
 template <>
 vector<complex<quad>> parse_list(const string &str)
@@ -313,6 +332,7 @@ vector<complex<quad>> parse_list(const string &str)
   }
   return list;
 }
+#endif // defined(USE_QUAD) && defined(USE_COMPLEX)
 
 // Specialization for VectorXd
 template <>
@@ -330,6 +350,7 @@ VectorXd parse_list(const string &str)
   return list;
 }
 
+#if defined(USE_COMPLEX)
 // Specialization for VectorXcd
 template <>
 VectorXcd parse_list(const string &str)
@@ -345,6 +366,7 @@ VectorXcd parse_list(const string &str)
   }
   return list;
 }
+#endif // defined(USE_COMPLEX)
 
 // Specialization for VectorXld
 template <>
@@ -362,6 +384,7 @@ VectorXld parse_list(const string &str)
   return list;
 }
 
+#if defined(USE_COMPLEX)
 // Specialization for VectorXcld
 template <>
 VectorXcld parse_list(const string &str)
@@ -377,7 +400,9 @@ VectorXcld parse_list(const string &str)
   }
   return list;
 }
+#endif // defined(USE_COMPLEX)
 
+#if defined(USE_QUAD)
 // Specialization for VectorXQ
 template <>
 VectorXQ parse_list(const string &str)
@@ -393,7 +418,9 @@ VectorXQ parse_list(const string &str)
   }
   return list;
 }
+#endif // defined(USE_QUAD)
 
+#if defined(USE_QUAD) && defined(USE_COMPLEX)
 // Specialization for VectorXcQ
 template <>
 VectorXcQ parse_list(const string &str)
@@ -409,7 +436,7 @@ VectorXcQ parse_list(const string &str)
   }
   return list;
 }
-
+#endif // defined(USE_QUAD) && defined(USE_COMPLEX)
 
 // Helper functions for printing in the minimization routines
 template <typename RealT>
@@ -452,7 +479,6 @@ void print_num_min(ostream &stream, const int &order, const int &no_cycles,
   }
 }
 
-
 // Helper functions for printing in the minimization routines (with origin term)
 template <typename RealT>
 void print_num_min_origin(ostream &stream, const int &order, const int &no_cycles,
@@ -490,7 +516,6 @@ void print_num_min_origin(ostream &stream, const int &order, const int &no_cycle
   stream << "ratio = " << scientific << setprecision(5) << ratio << endl;
 }
 
-
 // Helper functions for printing in the minimization routines
 template <typename RealT>
 void print_sym_min(ostream &stream, const int &order, const int &no_cycles,
@@ -521,7 +546,6 @@ void print_sym_min(ostream &stream, const int &order, const int &no_cycles,
   stream << "Number of maximal iterations: " << fixed << setprecision(1) << n_iter << endl;
   stream << "Ls = (" << fixed << setprecision(2) << Ls[0] << ", " << Ls[1] << "), lambda = " << lambda << endl;
 }
-
 
 // Specialization for NScheme
 // Specialization for VectorXd
@@ -619,6 +643,7 @@ void print_num_min1(ostream &stream, NScheme<VectorXd> &scheme, const VectorXd &
   stream << string(59, '-') << endl;
 }
 
+#if defined(USE_COMPLEX)
 // Specialization for VectorXcd
 template <>
 void print_num_min1(ostream &stream, NScheme<VectorXcd> &scheme, const VectorXcd &a_init, const VectorXcd &b_init)
@@ -749,6 +774,7 @@ void print_num_min1(ostream &stream, NScheme<VectorXcd> &scheme, const VectorXcd
   }
   stream << string(59, '-') << endl;
 }
+#endif // defined(USE_COMPLEX)
 
 // Specialization for VectorXld
 template <>
@@ -845,6 +871,7 @@ void print_num_min1(ostream &stream, NScheme<VectorXld> &scheme, const VectorXld
   stream << string(67, '-') << endl;
 }
 
+#if defined(USE_COMPLEX)
 // Specialization for VectorXcld
 template <>
 void print_num_min1(ostream &stream, NScheme<VectorXcld> &scheme, const VectorXcld &a_init, const VectorXcld &b_init)
@@ -975,7 +1002,9 @@ void print_num_min1(ostream &stream, NScheme<VectorXcld> &scheme, const VectorXc
   }
   stream << string(67, '-') << endl;
 }
+#endif // defined(USE_COMPLEX)
 
+#if defined(USE_QUAD)
 // Specialization for VectorXQ
 template <>
 void print_num_min1(ostream &stream, NScheme<VectorXQ> &scheme, const VectorXQ &a_init, const VectorXQ &b_init)
@@ -1070,7 +1099,9 @@ void print_num_min1(ostream &stream, NScheme<VectorXQ> &scheme, const VectorXQ &
   }
   stream << string(99, '-') << endl;
 }
+#endif // defined(USE_QUAD)
 
+#if defined(USE_QUAD) && defined(USE_COMPLEX)
 // Specialization for VectorXcQ
 template <>
 void print_num_min1(ostream &stream, NScheme<VectorXcQ> &scheme, const VectorXcQ &a_init, const VectorXcQ &b_init)
@@ -1201,7 +1232,7 @@ void print_num_min1(ostream &stream, NScheme<VectorXcQ> &scheme, const VectorXcQ
   }
   stream << string(99, '-') << endl;
 }
-
+#endif // defined(USE_QUAD) && defined(USE_COMPLEX)
 
 // Specialization for Scheme
 // Specialization for VectorXd
@@ -1289,6 +1320,7 @@ void print_sym_min1(ostream &stream, Scheme<double> &scheme,
   stream << string(59, '-') << endl;
 }
 
+#if defined(USE_COMPLEX)
 // Specialization for VectorXcd
 template <>
 void print_sym_min1(ostream &stream, Scheme<double> &scheme,
@@ -1409,6 +1441,7 @@ void print_sym_min1(ostream &stream, Scheme<double> &scheme,
   }
   stream << string(59, '-') << endl;
 }
+#endif // defined(USE_COMPLEX)
 
 // Specialization for VectorXld
 template <>
@@ -1495,6 +1528,7 @@ void print_sym_min1(ostream &stream, Scheme<long double> &scheme,
   stream << string(67, '-') << endl;
 }
 
+#if defined(USE_COMPLEX)
 // Specialization for VectorXcld
 template <>
 void print_sym_min1(ostream &stream, Scheme<long double> &scheme,
@@ -1615,7 +1649,7 @@ void print_sym_min1(ostream &stream, Scheme<long double> &scheme,
   }
   stream << string(67, '-') << endl;
 }
-
+#endif // defined(USE_COMPLEX)
 
 // Helper functions for printing in the finder routine
 template <typename Scalar, typename RealT>
@@ -1697,42 +1731,41 @@ void print_num_find(ostream &stream, const int &order, const int &no_cycles,
 
   if constexpr (is_same_v<Scalar, double>)
   {
-    stream << string(106, '-') << endl;
-    stream << "| i   ||  Ratio  |   Eff2   |   Eff4   |   Eff6   |   Eff8   |          a          |          b          |\n";
-    stream << string(106, '=') << endl;
+    stream << string(117, '-') << endl;
+    stream << "| i   ||  Ratio  |   Eff2   |   Eff4   |   Eff6   |   Eff8   |   Eff10  |          a          |          b          |\n";
+    stream << string(117, '=') << endl;
   }
   else if constexpr (is_same_v<Scalar, complex<double>>)
   {
-    stream << string(150, '-') << endl;
-    stream << "| i   ||  Ratio  |   Eff2   |   Eff4   |   Eff6   |   Eff8   |                     a                     |                     b                     |\n";
-    stream << string(150, '=') << endl;
+    stream << string(161, '-') << endl;
+    stream << "| i   ||  Ratio  |   Eff2   |   Eff4   |   Eff6   |   Eff8   |   Eff10  |                     a                     |                     b                     |\n";
+    stream << string(161, '=') << endl;
   }
   else if constexpr (is_same_v<Scalar, long double>)
   {
-    stream << string(114, '-') << endl;
-    stream << "| i   ||  Ratio  |   Eff2   |   Eff4   |   Eff6   |   Eff8   |            a            |            b            |\n";
-    stream << string(114, '=') << endl;
+    stream << string(125, '-') << endl;
+    stream << "| i   ||  Ratio  |   Eff2   |   Eff4   |   Eff6   |   Eff8   |   Eff10  |            a            |            b            |\n";
+    stream << string(125, '=') << endl;
   }
   else if constexpr (is_same_v<Scalar, complex<long double>>)
   {
-    stream << string(166, '-') << endl;
-    stream << "| i   ||  Ratio  |   Eff2   |   Eff4   |   Eff6   |   Eff8   |                         a                         |                         b                         |\n";
-    stream << string(166, '=') << endl;
+    stream << string(177, '-') << endl;
+    stream << "| i   ||  Ratio  |   Eff2   |   Eff4   |   Eff6   |   Eff8   |   Eff10  |                         a                         |                         b                         |\n";
+    stream << string(177, '=') << endl;
   }
   else if constexpr (is_same_v<Scalar, quad>)
   {
-    stream << string(146, '-') << endl;
-    stream << "| i   ||  Ratio  |   Eff2   |   Eff4   |   Eff6   |   Eff8   |                    a                    |                    b                    |\n";
-    stream << string(146, '=') << endl;
+    stream << string(157, '-') << endl;
+    stream << "| i   ||  Ratio  |   Eff2   |   Eff4   |   Eff6   |   Eff8   |   Eff10  |                    a                    |                    b                    |\n";
+    stream << string(157, '=') << endl;
   }
   else if constexpr (is_same_v<Scalar, complex<quad>>)
   {
-    stream << string(230, '-') << endl;
-    stream << "| i   ||  Ratio  |   Eff2   |   Eff4   |   Eff6   |   Eff8   |                                         a                                         |                                         b                                         |\n";
-    stream << string(230, '=') << endl;
+    stream << string(241, '-') << endl;
+    stream << "| i   ||  Ratio  |   Eff2   |   Eff4   |   Eff6   |   Eff8   |   Eff10  |                                         a                                         |                                         b                                         |\n";
+    stream << string(241, '=') << endl;
   }
 }
-
 
 // Helper functions for printing in the finder routine (with origin term)
 template <typename Scalar, typename RealT>
@@ -1810,30 +1843,29 @@ void print_num_find_origin(ostream &stream, const int &order, const int &no_cycl
 
   if constexpr (is_same_v<Scalar, double>)
   {
-    stream << string(106, '-') << endl;
-    stream << "| i   ||  Ratio  |   Eff2   |   Eff4   |   Eff6   |   Eff8   |          a          |          b          |\n";
-    stream << string(106, '=') << endl;
+    stream << string(117, '-') << endl;
+    stream << "| i   ||  Ratio  |   Eff2   |   Eff4   |   Eff6   |   Eff8   |   Eff10  |          a          |          b          |\n";
+    stream << string(117, '=') << endl;
   }
   else if constexpr (is_same_v<Scalar, complex<double>>)
   {
-    stream << string(150, '-') << endl;
-    stream << "| i   ||  Ratio  |   Eff2   |   Eff4   |   Eff6   |   Eff8   |                     a                     |                     b                     |\n";
-    stream << string(150, '=') << endl;
+    stream << string(161, '-') << endl;
+    stream << "| i   ||  Ratio  |   Eff2   |   Eff4   |   Eff6   |   Eff8   |   Eff10  |                     a                     |                     b                     |\n";
+    stream << string(161, '=') << endl;
   }
   else if constexpr (is_same_v<Scalar, long double>)
   {
-    stream << string(114, '-') << endl;
-    stream << "| i   ||  Ratio  |   Eff2   |   Eff4   |   Eff6   |   Eff8   |            a            |            b            |\n";
-    stream << string(114, '=') << endl;
+    stream << string(125, '-') << endl;
+    stream << "| i   ||  Ratio  |   Eff2   |   Eff4   |   Eff6   |   Eff8   |   Eff10  |            a            |            b            |\n";
+    stream << string(125, '=') << endl;
   }
   else if constexpr (is_same_v<Scalar, complex<long double>>)
   {
-    stream << string(166, '-') << endl;
-    stream << "| i   ||  Ratio  |   Eff2   |   Eff4   |   Eff6   |   Eff8   |                         a                         |                         b                         |\n";
-    stream << string(166, '=') << endl;
+    stream << string(177, '-') << endl;
+    stream << "| i   ||  Ratio  |   Eff2   |   Eff4   |   Eff6   |   Eff8   |   Eff10  |                         a                         |                         b                         |\n";
+    stream << string(177, '=') << endl;
   }
 }
-
 
 template <typename Scalar, typename RealT>
 void print_sym_find(ostream &stream, const int &order, const int &no_cycles,
@@ -1904,30 +1936,29 @@ void print_sym_find(ostream &stream, const int &order, const int &no_cycles,
 
   if constexpr (is_same_v<Scalar, double>)
   {
-    stream << string(106, '-') << endl;
-    stream << "| i   ||  Ratio  |   Eff2   |   Eff4   |   Eff6   |   Eff8   |          a          |          b          |\n";
-    stream << string(106, '=') << endl;
+    stream << string(117, '-') << endl;
+    stream << "| i   ||  Ratio  |   Eff2   |   Eff4   |   Eff6   |   Eff8   |   Eff10  |          a          |          b          |\n";
+    stream << string(117, '=') << endl;
   }
   else if constexpr (is_same_v<Scalar, complex<double>>)
   {
-    stream << string(150, '-') << endl;
-    stream << "| i   ||  Ratio  |   Eff2   |   Eff4   |   Eff6   |   Eff8   |                     a                     |                     b                     |\n";
-    stream << string(150, '=') << endl;
+    stream << string(161, '-') << endl;
+    stream << "| i   ||  Ratio  |   Eff2   |   Eff4   |   Eff6   |   Eff8   |   Eff10  |                     a                     |                     b                     |\n";
+    stream << string(161, '=') << endl;
   }
   else if constexpr (is_same_v<Scalar, long double>)
   {
-    stream << string(114, '-') << endl;
-    stream << "| i   ||  Ratio  |   Eff2   |   Eff4   |   Eff6   |   Eff8   |            a            |            b            |\n";
-    stream << string(114, '=') << endl;
+    stream << string(125, '-') << endl;
+    stream << "| i   ||  Ratio  |   Eff2   |   Eff4   |   Eff6   |   Eff8   |   Eff10  |            a            |            b            |\n";
+    stream << string(125, '=') << endl;
   }
   else if constexpr (is_same_v<Scalar, complex<long double>>)
   {
-    stream << string(166, '-') << endl;
-    stream << "| i   ||  Ratio  |   Eff2   |   Eff4   |   Eff6   |   Eff8   |                         a                         |                         b                         |\n";
-    stream << string(166, '=') << endl;
+    stream << string(177, '-') << endl;
+    stream << "| i   ||  Ratio  |   Eff2   |   Eff4   |   Eff6   |   Eff8   |   Eff10  |                         a                         |                         b                         |\n";
+    stream << string(177, '=') << endl;
   }
 }
-
 
 template <typename RealT>
 void print_find1(ostream &stream, const int &tracker, const double &ratio,
@@ -2065,7 +2096,6 @@ void print_find1(ostream &stream, const int &tracker, const double &ratio,
   }
 }
 
-
 // Specialization for VectorXd
 template <>
 void print_find2(ostream &stream, const VectorXd &a_vec, const VectorXd &b_vec)
@@ -2088,7 +2118,7 @@ void print_find2(ostream &stream, const VectorXd &a_vec, const VectorXd &b_vec)
   {
     for (int j{1}; j < a_vec.size(); ++j)
     {
-      stream << "|" << string(5, ' ') << "||" << string(9, ' ') << "|" << string(10, ' ') << "|" << string(10, ' ') << "|" << string(10, ' ') << "|" << string(10, ' ') << "| ";
+      stream << "|" << string(5, ' ') << "||" << string(9, ' ') << "|" << string(10, ' ') << "|" << string(10, ' ') << "|" << string(10, ' ') << "|" << string(10, ' ') << "|" << string(10, ' ') << "| ";
       if (a_vec[j] >= 0)
       {
         stream << " ";
@@ -2112,7 +2142,7 @@ void print_find2(ostream &stream, const VectorXd &a_vec, const VectorXd &b_vec)
   {
     for (int j{1}; j < b_vec.size(); ++j)
     {
-      stream << "|" << string(5, ' ') << "||" << string(9, ' ') << "|" << string(10, ' ') << "|" << string(10, ' ') << "|" << string(10, ' ') << "|" << string(10, ' ') << "| ";
+      stream << "|" << string(5, ' ') << "||" << string(9, ' ') << "|" << string(10, ' ') << "|" << string(10, ' ') << "|" << string(10, ' ') << "|" << string(10, ' ') << "|" << string(10, ' ') << "| ";
       if (j != b_vec.size() - 1)
       {
         if (a_vec[j] >= 0)
@@ -2136,7 +2166,7 @@ void print_find2(ostream &stream, const VectorXd &a_vec, const VectorXd &b_vec)
   {
     for (int j{1}; j < a_vec.size(); ++j)
     {
-      stream << "|" << string(5, ' ') << "||" << string(9, ' ') << "|" << string(10, ' ') << "|" << string(10, ' ') << "|" << string(10, ' ') << "|" << string(10, ' ') << "| ";
+      stream << "|" << string(5, ' ') << "||" << string(9, ' ') << "|" << string(10, ' ') << "|" << string(10, ' ') << "|" << string(10, ' ') << "|" << string(10, ' ') << "|" << string(10, ' ') << "| ";
       if (a_vec[j] >= 0)
       {
         stream << " ";
@@ -2149,9 +2179,10 @@ void print_find2(ostream &stream, const VectorXd &a_vec, const VectorXd &b_vec)
       stream << b_vec[j] << " |\n";
     }
   }
-  stream << string(106, '-') << endl;
+  stream << string(117, '-') << endl;
 }
 
+#if defined(USE_COMPLEX)
 // Specialization for VectorXcd
 template <>
 void print_find2(ostream &stream, const VectorXcd &a_vec, const VectorXcd &b_vec)
@@ -2194,7 +2225,7 @@ void print_find2(ostream &stream, const VectorXcd &a_vec, const VectorXcd &b_vec
   {
     for (int j{1}; j < a_vec.size(); ++j)
     {
-      stream << "|" << string(5, ' ') << "||" << string(9, ' ') << "|" << string(10, ' ') << "|" << string(10, ' ') << "|" << string(10, ' ') << "|" << string(10, ' ') << "| ";
+      stream << "|" << string(5, ' ') << "||" << string(9, ' ') << "|" << string(10, ' ') << "|" << string(10, ' ') << "|" << string(10, ' ') << "|" << string(10, ' ') << "|" << string(10, ' ') << "| ";
       if (real(a_vec[j]) >= 0)
       {
         stream << " ";
@@ -2237,7 +2268,7 @@ void print_find2(ostream &stream, const VectorXcd &a_vec, const VectorXcd &b_vec
   {
     for (int j{1}; j < b_vec.size(); ++j)
     {
-      stream << "|" << string(5, ' ') << "||" << string(9, ' ') << "|" << string(10, ' ') << "|" << string(10, ' ') << "|" << string(10, ' ') << "|" << string(10, ' ') << "| ";
+      stream << "|" << string(5, ' ') << "||" << string(9, ' ') << "|" << string(10, ' ') << "|" << string(10, ' ') << "|" << string(10, ' ') << "|" << string(10, ' ') << "|" << string(10, ' ') << "| ";
       if (j != b_vec.size() - 1)
       {
         if (real(a_vec[j]) >= 0)
@@ -2279,7 +2310,7 @@ void print_find2(ostream &stream, const VectorXcd &a_vec, const VectorXcd &b_vec
   {
     for (int j{1}; j < a_vec.size(); ++j)
     {
-      stream << "|" << string(5, ' ') << "||" << string(9, ' ') << "|" << string(10, ' ') << "|" << string(10, ' ') << "|" << string(10, ' ') << "|" << string(10, ' ') << "| ";
+      stream << "|" << string(5, ' ') << "||" << string(9, ' ') << "|" << string(10, ' ') << "|" << string(10, ' ') << "|" << string(10, ' ') << "|" << string(10, ' ') << "|" << string(10, ' ') << "| ";
       if (real(a_vec[j]) >= 0)
       {
         stream << " ";
@@ -2310,8 +2341,9 @@ void print_find2(ostream &stream, const VectorXcd &a_vec, const VectorXcd &b_vec
       stream << abs(imag(b_vec[j])) << " |\n";
     }
   }
-  stream << string(150, '-') << endl;
+  stream << string(161, '-') << endl;
 }
+#endif // defined(USE_COMPLEX)
 
 // Specialization for VectorXld
 template <>
@@ -2335,7 +2367,7 @@ void print_find2(ostream &stream, const VectorXld &a_vec, const VectorXld &b_vec
   {
     for (int j{1}; j < a_vec.size(); ++j)
     {
-      stream << "|" << string(5, ' ') << "||" << string(9, ' ') << "|" << string(10, ' ') << "|" << string(10, ' ') << "|" << string(10, ' ') << "|" << string(10, ' ') << "| ";
+      stream << "|" << string(5, ' ') << "||" << string(9, ' ') << "|" << string(10, ' ') << "|" << string(10, ' ') << "|" << string(10, ' ') << "|" << string(10, ' ') << "|" << string(10, ' ') << "| ";
       if (a_vec[j] >= 0)
       {
         stream << " ";
@@ -2359,7 +2391,7 @@ void print_find2(ostream &stream, const VectorXld &a_vec, const VectorXld &b_vec
   {
     for (int j{1}; j < b_vec.size(); ++j)
     {
-      stream << "|" << string(5, ' ') << "||" << string(9, ' ') << "|" << string(10, ' ') << "|" << string(10, ' ') << "|" << string(10, ' ') << "|" << string(10, ' ') << "| ";
+      stream << "|" << string(5, ' ') << "||" << string(9, ' ') << "|" << string(10, ' ') << "|" << string(10, ' ') << "|" << string(10, ' ') << "|" << string(10, ' ') << "|" << string(10, ' ') << "| ";
       if (j != b_vec.size() - 1)
       {
         if (a_vec[j] >= 0)
@@ -2383,7 +2415,7 @@ void print_find2(ostream &stream, const VectorXld &a_vec, const VectorXld &b_vec
   {
     for (int j{1}; j < a_vec.size(); ++j)
     {
-      stream << "|" << string(5, ' ') << "||" << string(9, ' ') << "|" << string(10, ' ') << "|" << string(10, ' ') << "|" << string(10, ' ') << "|" << string(10, ' ') << "| ";
+      stream << "|" << string(5, ' ') << "||" << string(9, ' ') << "|" << string(10, ' ') << "|" << string(10, ' ') << "|" << string(10, ' ') << "|" << string(10, ' ') << "|" << string(10, ' ') << "| ";
       if (a_vec[j] >= 0)
       {
         stream << " ";
@@ -2396,9 +2428,10 @@ void print_find2(ostream &stream, const VectorXld &a_vec, const VectorXld &b_vec
       stream << b_vec[j] << " |\n";
     }
   }
-  stream << string(114, '-') << endl;
+  stream << string(125, '-') << endl;
 }
 
+#if defined(USE_COMPLEX)
 // Specialization for VectorXcld
 template <>
 void print_find2(ostream &stream, const VectorXcld &a_vec, const VectorXcld &b_vec)
@@ -2441,7 +2474,7 @@ void print_find2(ostream &stream, const VectorXcld &a_vec, const VectorXcld &b_v
   {
     for (int j{1}; j < a_vec.size(); ++j)
     {
-      stream << "|" << string(5, ' ') << "||" << string(9, ' ') << "|" << string(10, ' ') << "|" << string(10, ' ') << "|" << string(10, ' ') << "|" << string(10, ' ') << "| ";
+      stream << "|" << string(5, ' ') << "||" << string(9, ' ') << "|" << string(10, ' ') << "|" << string(10, ' ') << "|" << string(10, ' ') << "|" << string(10, ' ') << "|" << string(10, ' ') << "| ";
       if (real(a_vec[j]) >= 0)
       {
         stream << " ";
@@ -2484,7 +2517,7 @@ void print_find2(ostream &stream, const VectorXcld &a_vec, const VectorXcld &b_v
   {
     for (int j{1}; j < b_vec.size(); ++j)
     {
-      stream << "|" << string(5, ' ') << "||" << string(9, ' ') << "|" << string(10, ' ') << "|" << string(10, ' ') << "|" << string(10, ' ') << "|" << string(10, ' ') << "| ";
+      stream << "|" << string(5, ' ') << "||" << string(9, ' ') << "|" << string(10, ' ') << "|" << string(10, ' ') << "|" << string(10, ' ') << "|" << string(10, ' ') << "|" << string(10, ' ') << "| ";
       if (j != b_vec.size() - 1)
       {
         if (real(a_vec[j]) >= 0)
@@ -2526,7 +2559,7 @@ void print_find2(ostream &stream, const VectorXcld &a_vec, const VectorXcld &b_v
   {
     for (int j{1}; j < a_vec.size(); ++j)
     {
-      stream << "|" << string(5, ' ') << "||" << string(9, ' ') << "|" << string(10, ' ') << "|" << string(10, ' ') << "|" << string(10, ' ') << "|" << string(10, ' ') << "| ";
+      stream << "|" << string(5, ' ') << "||" << string(9, ' ') << "|" << string(10, ' ') << "|" << string(10, ' ') << "|" << string(10, ' ') << "|" << string(10, ' ') << "|" << string(10, ' ') << "| ";
       if (real(a_vec[j]) >= 0)
       {
         stream << " ";
@@ -2557,9 +2590,11 @@ void print_find2(ostream &stream, const VectorXcld &a_vec, const VectorXcld &b_v
       stream << abs(imag(b_vec[j])) << " |\n";
     }
   }
-  stream << string(166, '-') << endl;
+  stream << string(177, '-') << endl;
 }
+#endif // defined(USE_COMPLEX)
 
+#if defined(USE_QUAD)
 // Specialization for VectorXQ
 template <>
 void print_find2(ostream &stream, const VectorXQ &a_vec, const VectorXQ &b_vec)
@@ -2582,7 +2617,7 @@ void print_find2(ostream &stream, const VectorXQ &a_vec, const VectorXQ &b_vec)
   {
     for (int j{1}; j < a_vec.size(); ++j)
     {
-      stream << "|" << string(5, ' ') << "||" << string(9, ' ') << "|" << string(10, ' ') << "|" << string(10, ' ') << "|" << string(10, ' ') << "|" << string(10, ' ') << "| ";
+      stream << "|" << string(5, ' ') << "||" << string(9, ' ') << "|" << string(10, ' ') << "|" << string(10, ' ') << "|" << string(10, ' ') << "|" << string(10, ' ') << "|" << string(10, ' ') << "| ";
       if (a_vec[j] >= 0)
       {
         stream << " ";
@@ -2606,7 +2641,7 @@ void print_find2(ostream &stream, const VectorXQ &a_vec, const VectorXQ &b_vec)
   {
     for (int j{1}; j < b_vec.size(); ++j)
     {
-      stream << "|" << string(5, ' ') << "||" << string(9, ' ') << "|" << string(10, ' ') << "|" << string(10, ' ') << "|" << string(10, ' ') << "|" << string(10, ' ') << "| ";
+      stream << "|" << string(5, ' ') << "||" << string(9, ' ') << "|" << string(10, ' ') << "|" << string(10, ' ') << "|" << string(10, ' ') << "|" << string(10, ' ') << "|" << string(10, ' ') << "| ";
       if (j != b_vec.size() - 1)
       {
         if (a_vec[j] >= 0)
@@ -2630,7 +2665,7 @@ void print_find2(ostream &stream, const VectorXQ &a_vec, const VectorXQ &b_vec)
   {
     for (int j{1}; j < a_vec.size(); ++j)
     {
-      stream << "|" << string(5, ' ') << "||" << string(9, ' ') << "|" << string(10, ' ') << "|" << string(10, ' ') << "|" << string(10, ' ') << "|" << string(10, ' ') << "| ";
+      stream << "|" << string(5, ' ') << "||" << string(9, ' ') << "|" << string(10, ' ') << "|" << string(10, ' ') << "|" << string(10, ' ') << "|" << string(10, ' ') << "|" << string(10, ' ') << "| ";
       if (a_vec[j] >= 0)
       {
         stream << " ";
@@ -2643,9 +2678,11 @@ void print_find2(ostream &stream, const VectorXQ &a_vec, const VectorXQ &b_vec)
       stream << b_vec[j] << " |\n";
     }
   }
-  stream << string(146, '-') << endl;
+  stream << string(157, '-') << endl;
 }
+#endif // defined(USE_QUAD)
 
+#if defined(USE_QUAD) && defined(USE_COMPLEX)
 // Specialization for VectorXcQ
 template <>
 void print_find2(ostream &stream, const VectorXcQ &a_vec, const VectorXcQ &b_vec)
@@ -2688,7 +2725,7 @@ void print_find2(ostream &stream, const VectorXcQ &a_vec, const VectorXcQ &b_vec
   {
     for (int j{1}; j < a_vec.size(); ++j)
     {
-      stream << "|" << string(5, ' ') << "||" << string(9, ' ') << "|" << string(10, ' ') << "|" << string(10, ' ') << "|" << string(10, ' ') << "|" << string(10, ' ') << "| ";
+      stream << "|" << string(5, ' ') << "||" << string(9, ' ') << "|" << string(10, ' ') << "|" << string(10, ' ') << "|" << string(10, ' ') << "|" << string(10, ' ') << "|" << string(10, ' ') << "| ";
       if (real(a_vec[j]) >= 0)
       {
         stream << " ";
@@ -2731,7 +2768,7 @@ void print_find2(ostream &stream, const VectorXcQ &a_vec, const VectorXcQ &b_vec
   {
     for (int j{1}; j < b_vec.size(); ++j)
     {
-      stream << "|" << string(5, ' ') << "||" << string(9, ' ') << "|" << string(10, ' ') << "|" << string(10, ' ') << "|" << string(10, ' ') << "|" << string(10, ' ') << "| ";
+      stream << "|" << string(5, ' ') << "||" << string(9, ' ') << "|" << string(10, ' ') << "|" << string(10, ' ') << "|" << string(10, ' ') << "|" << string(10, ' ') << "|" << string(10, ' ') << "| ";
       if (j != b_vec.size() - 1)
       {
         if (real(a_vec[j]) >= 0)
@@ -2773,7 +2810,7 @@ void print_find2(ostream &stream, const VectorXcQ &a_vec, const VectorXcQ &b_vec
   {
     for (int j{1}; j < a_vec.size(); ++j)
     {
-      stream << "|" << string(5, ' ') << "||" << string(9, ' ') << "|" << string(10, ' ') << "|" << string(10, ' ') << "|" << string(10, ' ') << "|" << string(10, ' ') << "| ";
+      stream << "|" << string(5, ' ') << "||" << string(9, ' ') << "|" << string(10, ' ') << "|" << string(10, ' ') << "|" << string(10, ' ') << "|" << string(10, ' ') << "|" << string(10, ' ') << "| ";
       if (real(a_vec[j]) >= 0)
       {
         stream << " ";
@@ -2804,9 +2841,9 @@ void print_find2(ostream &stream, const VectorXcQ &a_vec, const VectorXcQ &b_vec
       stream << abs(imag(b_vec[j])) << " |\n";
     }
   }
-  stream << string(230, '-') << endl;
+  stream << string(241, '-') << endl;
 }
-
+#endif // defined(USE_QUAD) && defined(USE_COMPLEX)
 
 // Specialization for VectorXd
 template <>
@@ -2872,6 +2909,7 @@ void print_sym_scheme(ostream &stream, Scheme<double> &scheme, const VectorXd &a
          << endl;
 }
 
+#if defined(USE_COMPLEX)
 // Specialization for VectorXcd
 template <>
 void print_sym_scheme(ostream &stream, Scheme<double> &scheme, const VectorXcd &a_vec, const VectorXcd &b_vec)
@@ -2953,6 +2991,7 @@ void print_sym_scheme(ostream &stream, Scheme<double> &scheme, const VectorXcd &
   stream << string(59, '-') << endl
          << endl;
 }
+#endif // defined(USE_COMPLEX)
 
 // Specialization for VectorXld
 template <>
@@ -3018,6 +3057,7 @@ void print_sym_scheme(ostream &stream, Scheme<long double> &scheme, const Vector
          << endl;
 }
 
+#if defined(USE_COMPLEX)
 // Specialization for VectorXcld
 template <>
 void print_sym_scheme(ostream &stream, Scheme<long double> &scheme, const VectorXcld &a_vec, const VectorXcld &b_vec)
@@ -3099,7 +3139,7 @@ void print_sym_scheme(ostream &stream, Scheme<long double> &scheme, const Vector
   stream << string(67, '-') << endl
          << endl;
 }
-
+#endif // defined(USE_COMPLEX)
 
 // Specialization for VectorXd
 template <>
@@ -3176,6 +3216,7 @@ void print_num_scheme(ostream &stream, NScheme<VectorXd> &scheme)
          << endl;
 }
 
+#if defined(USE_COMPLEX)
 // Specialization for VectorXcd
 template <>
 void print_num_scheme(ostream &stream, NScheme<VectorXcd> &scheme)
@@ -3268,6 +3309,7 @@ void print_num_scheme(ostream &stream, NScheme<VectorXcd> &scheme)
   stream << string(59, '-') << endl
          << endl;
 }
+#endif // defined(USE_COMPLEX)
 
 // Specialization for VectorXld
 template <>
@@ -3344,6 +3386,7 @@ void print_num_scheme(ostream &stream, NScheme<VectorXld> &scheme)
          << endl;
 }
 
+#if defined(USE_COMPLEX)
 // Specialization for VectorXcld
 template <>
 void print_num_scheme(ostream &stream, NScheme<VectorXcld> &scheme)
@@ -3436,7 +3479,9 @@ void print_num_scheme(ostream &stream, NScheme<VectorXcld> &scheme)
   stream << string(67, '-') << endl
          << endl;
 }
+#endif // defined(USE_COMPLEX)
 
+#if defined(USE_QUAD)
 // Specialization for VectorXQ
 template <>
 void print_num_scheme(ostream &stream, NScheme<VectorXQ> &scheme)
@@ -3511,7 +3556,9 @@ void print_num_scheme(ostream &stream, NScheme<VectorXQ> &scheme)
   stream << string(99, '-') << endl
          << endl;
 }
+#endif // defined(USE_QUAD)
 
+#if defined(USE_QUAD) && defined(USE_COMPLEX)
 // Specialization for VectorXcQ
 template <>
 void print_num_scheme(ostream &stream, NScheme<VectorXcQ> &scheme)
@@ -3604,6 +3651,7 @@ void print_num_scheme(ostream &stream, NScheme<VectorXcQ> &scheme)
   stream << string(99, '-') << endl
          << endl;
 }
+#endif // defined(USE_QUAD) && defined(USE_COMPLEX)
 
 // Constructor for IO
 IO::IO(const string read_file)
@@ -3611,11 +3659,12 @@ IO::IO(const string read_file)
   rfile.open(read_file);
   if (!rfile)
   {
-    runtime_error("Error opening input file.\n");
+    throw runtime_error("Error opening input file: " + read_file);
   }
 
+  // Read the general parameters from the whole file (keys of the routines are skipped here)
   string line;
-  while (getline(rfile, line) && line != "# Specific parameters")
+  while (getline(rfile, line))
   {
     line = trim(line);
     if (line.empty() || line[0] == '#')
@@ -3654,6 +3703,11 @@ IO::IO(const string read_file)
       no_cycles = stoi(value);
     }
   }
+
+  // Rewind the file, such that the routines read their parameters from the start
+  // (the line "# Specific parameters" in the input files is therefore only a comment)
+  rfile.clear();
+  rfile.seekg(0);
 }
 
 // Destructor for IO
@@ -3809,7 +3863,7 @@ void IO::sym_scheme()
           ofstream wfile(write_file, ios::app);
           if (!wfile.is_open())
           {
-            runtime_error("Error opening output file: " + write_file);
+            throw runtime_error("Error opening output file: " + write_file);
           }
           wfile << "Scheme evaluation results:" << endl;
           wfile << "Order: " << scheme_order << ", No. cycles: " << no_cycles << endl;
@@ -3850,7 +3904,7 @@ void IO::sym_scheme()
           ofstream wfile(write_file, ios::app);
           if (!wfile.is_open())
           {
-            runtime_error("Error opening output file: " + write_file);
+            throw runtime_error("Error opening output file: " + write_file);
           }
           wfile << "Scheme evaluation results:" << endl;
           wfile << "Order: " << scheme_order << ", No. cycles: " << no_cycles << endl;
@@ -3904,7 +3958,7 @@ void IO::sym_scheme()
           ofstream wfile(write_file, ios::app);
           if (!wfile.is_open())
           {
-            runtime_error("Error opening output file: " + write_file);
+            throw runtime_error("Error opening output file: " + write_file);
           }
           wfile << "Scheme evaluation results:" << endl;
           wfile << "Order: " << scheme_order << ", No. cycles: " << no_cycles << endl;
@@ -3972,10 +4026,9 @@ void IO::sym_scheme()
   }
   else
   {
-    runtime_error("Method not supported!");
+    throw runtime_error("Method not supported!");
   }
 }
-
 
 // Numeric Scheme
 // Computes the errors and efficiencies of the scheme for the provided a_vec and b_vec
@@ -4061,7 +4114,7 @@ void IO::num_scheme()
     ofstream wfile(write_file, ios::app);
     if (!wfile.is_open())
     {
-      runtime_error("Error opening output file: " + write_file);
+      throw runtime_error("Error opening output file: " + write_file);
     }
     wfile << "Scheme evaluation results:" << endl;
     wfile << "Order: " << scheme_order << ", No. cycles: " << no_cycles << endl;
@@ -4082,9 +4135,6 @@ void IO::num_scheme()
 
   cout << string(64, '=') << endl;
 }
-
-// ** Minimizations **
-
 
 // Numeric Minimization
 // Methods: - minimize: minimize the computed scheme manifold once using initial vector a_vec, b_vec
@@ -4114,7 +4164,7 @@ void IO::num_minim()
   RealT lambda{0.25};              // Damping parameter
 
   // Geodesic acceleration parameters
-  RealT geod_eps{0.1}; // Convergence parameter for the geodesic acceleration (2|a|/|v| <= geod_eps)
+  RealT geod_eps{0.75}; // Convergence parameter for the geodesic acceleration (2|a|/|v| <= geod_eps)
 
   // Minima finder parameters
   int N;                  // Number of initial conditions
@@ -4138,6 +4188,9 @@ void IO::num_minim()
 
   // Ratio for the origin methods
   RealT ratio{0.0};
+
+  // Composition mode (restrict the search to S2-compositions)
+  bool comp{false};
 
   // Read the required parameters for the desired method
   string line;
@@ -4243,12 +4296,22 @@ void IO::num_minim()
     {
       ratio = parse_value<RealT>(value);
     }
+    // Composition mode
+    else if (key == "comp")
+    {
+      comp = stoi(value);
+    }
   }
 
   // Close the read_file
   rfile.close();
 
-  // Fill the weights vector according to order
+  // Fill the weights vector according to order (one weight per order 2, 4, ..., order)
+  if (wi.size() < static_cast<size_t>(order / 2))
+  {
+    throw invalid_argument("The input needs one weight wi per order up to order " + to_string(order) +
+                           " (" + to_string(order / 2) + " values), but " + to_string(wi.size()) + " were given.");
+  }
   std::vector<RealT> W_vec;
   W_vec.push_back(wi[0]);
   W_vec.push_back(wi[0]);
@@ -4286,12 +4349,17 @@ void IO::num_minim()
     }
   }
 
+  if (comp)
+  {
+    cout << "Composition mode: searching only S2-compositions (c_j = d_j)" << endl;
+  }
+
   if (method == "minimize")
   {
     cout << "Running Numeric Minimization (minimize) for order " << order << " and number of cycles q = " << no_cycles << endl;
     cout << string(81, '=') << endl;
 
-    NMinimization<Vec> minim(a_init, b_init, step, order, no_cycles, W_vec, n_iter, eps1, Ls);
+    NMinimization<Vec> minim(a_init, b_init, step, order, no_cycles, W_vec, n_iter, eps1, Ls, comp);
     MinResult<Vec> mini{minim.minimize(lambda, nullptr, verbose)};
 
     if (verbose)
@@ -4309,7 +4377,7 @@ void IO::num_minim()
       ofstream wfile(write_file, ios::app);
       if (!wfile.is_open())
       {
-        runtime_error("Error opening output file: " + write_file);
+        throw runtime_error("Error opening output file: " + write_file);
       }
 
       print_num_min(wfile, order, no_cycles, eps1, eps2, wi, step, n_iter, Ls, lambda, 1);
@@ -4333,7 +4401,7 @@ void IO::num_minim()
     cout << "Running Numeric Minimization (minimize_geodesic) for order " << order << " and number of cycles q = " << no_cycles << endl;
     cout << string(81, '=') << endl;
 
-    NMinimization<Vec> minim(a_init, b_init, step, order, no_cycles, W_vec, n_iter, eps1, Ls);
+    NMinimization<Vec> minim(a_init, b_init, step, order, no_cycles, W_vec, n_iter, eps1, Ls, comp);
     MinResult<Vec> mini{minim.minimize_geodesic(lambda, nullptr, verbose, geod_eps)};
 
     if (verbose)
@@ -4351,7 +4419,7 @@ void IO::num_minim()
       ofstream wfile(write_file, ios::app);
       if (!wfile.is_open())
       {
-        runtime_error("Error opening output file: " + write_file);
+        throw runtime_error("Error opening output file: " + write_file);
       }
 
       print_num_min(wfile, order, no_cycles, eps1, eps2, wi, step, n_iter, Ls, lambda, 1, &geod_eps);
@@ -4389,7 +4457,7 @@ void IO::num_minim()
       W_vec.push_back(wi[3]);
     }
 
-    NMinimization<Vec> minim(a_init, b_init, step, order, no_cycles, W_vec, n_iter, eps1, Ls);
+    NMinimization<Vec> minim(a_init, b_init, step, order, no_cycles, W_vec, n_iter, eps1, Ls, comp);
     MinResult<Vec> mini{minim.minimize_origin(lambda, ratio, nullptr, verbose)};
 
     if (verbose)
@@ -4407,7 +4475,7 @@ void IO::num_minim()
       ofstream wfile(write_file, ios::app);
       if (!wfile.is_open())
       {
-        runtime_error("Error opening output file: " + write_file);
+        throw runtime_error("Error opening output file: " + write_file);
       }
 
       print_num_min_origin(wfile, order, no_cycles, eps1, eps2, wi, step, n_iter, Ls, lambda, ratio, 1);
@@ -4431,7 +4499,7 @@ void IO::num_minim()
     cout << "Running Numeric Minimization (min_twostep) for order " << order << " and number of cycles q = " << no_cycles << endl;
     cout << string(81, '=') << endl;
 
-    NMinimization<Vec> minim(a_init, b_init, step, order, no_cycles, W_vec, n_iter, eps1, Ls);
+    NMinimization<Vec> minim(a_init, b_init, step, order, no_cycles, W_vec, n_iter, eps1, Ls, comp);
     MinResult<Vec> mini{minim.min_twostep(lambda, &eps2, verbose, freeze)};
 
     if (verbose)
@@ -4449,7 +4517,7 @@ void IO::num_minim()
       ofstream wfile(write_file, ios::app);
       if (!wfile.is_open())
       {
-        runtime_error("Error opening output file: " + write_file);
+        throw runtime_error("Error opening output file: " + write_file);
       }
 
       print_num_min(wfile, order, no_cycles, eps1, eps2, wi, step, n_iter, Ls, lambda, 2);
@@ -4474,7 +4542,7 @@ void IO::num_minim()
     cout << "Running Numeric Minimization (min_twostep_geodesic) for order " << order << " and number of cycles q = " << no_cycles << endl;
     cout << string(81, '=') << endl;
 
-    NMinimization<Vec> minim(a_init, b_init, step, order, no_cycles, W_vec, n_iter, eps1, Ls);
+    NMinimization<Vec> minim(a_init, b_init, step, order, no_cycles, W_vec, n_iter, eps1, Ls, comp);
     MinResult<Vec> mini{minim.min_twostep_geodesic(lambda, &eps2, verbose, freeze, geod_eps)};
 
     if (verbose)
@@ -4492,7 +4560,7 @@ void IO::num_minim()
       ofstream wfile(write_file, ios::app);
       if (!wfile.is_open())
       {
-        runtime_error("Error opening output file: " + write_file);
+        throw runtime_error("Error opening output file: " + write_file);
       }
 
       print_num_min(wfile, order, no_cycles, eps1, eps2, wi, step, n_iter, Ls, lambda, 2, &geod_eps);
@@ -4531,7 +4599,7 @@ void IO::num_minim()
       W_vec.push_back(wi[3]);
     }
 
-    NMinimization<Vec> minim(a_init, b_init, step, order, no_cycles, W_vec, n_iter, eps1, Ls);
+    NMinimization<Vec> minim(a_init, b_init, step, order, no_cycles, W_vec, n_iter, eps1, Ls, comp);
     MinResult<Vec> mini{minim.min_twostep_origin(lambda, ratio, &eps2, verbose, freeze)};
 
     if (verbose)
@@ -4549,7 +4617,7 @@ void IO::num_minim()
       ofstream wfile(write_file, ios::app);
       if (!wfile.is_open())
       {
-        runtime_error("Error opening output file: " + write_file);
+        throw runtime_error("Error opening output file: " + write_file);
       }
 
       print_num_min_origin(wfile, order, no_cycles, eps1, eps2, wi, step, n_iter, Ls, lambda, ratio, 2);
@@ -4574,7 +4642,7 @@ void IO::num_minim()
     cout << "Running Numeric Minimization (find, " << steps << ") for order " << order << " and number of cycles q = " << no_cycles << endl;
     cout << string(88, '=') << endl;
 
-    NMinimization<Vec> minim(step, order, no_cycles, W_vec, n_iter, eps1, Ls);
+    NMinimization<Vec> minim(step, order, no_cycles, W_vec, n_iter, eps1, Ls, comp);
     pair<array<vector<Vec>, 4>, vector<int>> minima;
 
     if (steps == 1)
@@ -4596,7 +4664,7 @@ void IO::num_minim()
       ofstream wfile(write_file, ios::app);
       if (!wfile.is_open())
       {
-        runtime_error("Error opening output file: " + write_file);
+        throw runtime_error("Error opening output file: " + write_file);
       }
 
       print_num_find(cout, order, no_cycles, eps1, eps2, wi, step, n_iter, Ls, lambda, N, steps, mu, sigma, sum_convs, tol);
@@ -4712,7 +4780,7 @@ void IO::num_minim()
     cout << "Running Numeric Minimization (find_geodesic, " << steps << ") for order " << order << " and number of cycles q = " << no_cycles << endl;
     cout << string(88, '=') << endl;
 
-    NMinimization<Vec> minim(step, order, no_cycles, W_vec, n_iter, eps1, Ls);
+    NMinimization<Vec> minim(step, order, no_cycles, W_vec, n_iter, eps1, Ls, comp);
     pair<array<vector<Vec>, 4>, vector<int>> minima;
 
     if (steps == 1)
@@ -4734,7 +4802,7 @@ void IO::num_minim()
       ofstream wfile(write_file, ios::app);
       if (!wfile.is_open())
       {
-        runtime_error("Error opening output file: " + write_file);
+        throw runtime_error("Error opening output file: " + write_file);
       }
 
       print_num_find(cout, order, no_cycles, eps1, eps2, wi, step, n_iter, Ls, lambda, N, steps, mu, sigma, sum_convs, tol, &geod_eps);
@@ -4847,10 +4915,9 @@ void IO::num_minim()
   }
   else
   {
-    runtime_error("Method not supported!");
+    throw runtime_error("Method not supported!");
   }
 }
-
 
 // Explicit routine instantiations for double
 template void IO::sym_scheme<double>();
@@ -4858,10 +4925,11 @@ template void IO::num_scheme<double>();
 template void IO::num_minim<double>();
 
 // Explicit routine instantiations for complex<double>
+#if defined(USE_COMPLEX)
 template void IO::sym_scheme<complex<double>>();
 template void IO::num_scheme<complex<double>>();
 template void IO::num_minim<complex<double>>();
-
+#endif // defined(USE_COMPLEX)
 
 // Explicit routine instantiations for long double
 template void IO::sym_scheme<long double>();
@@ -4869,16 +4937,30 @@ template void IO::num_scheme<long double>();
 template void IO::num_minim<long double>();
 
 // Explicit routine instantiations for complex<long double>
+#if defined(USE_COMPLEX)
 template void IO::sym_scheme<complex<long double>>();
 template void IO::num_scheme<complex<long double>>();
 template void IO::num_minim<complex<long double>>();
+#endif // defined(USE_COMPLEX)
 
 // Explicit routine instantiations for quad
 //template void IO::sym_scheme<quad>();
+#if defined(USE_QUAD)
 template void IO::num_scheme<quad>();
+//template void IO::sym_symplectic_scheme<quad>();
+//template void IO::num_symplectic_scheme<quad>();
+//template void IO::sym_minim<quad>();
 template void IO::num_minim<quad>();
+#endif // defined(USE_QUAD)
+//template void IO::sym_symplectic_minim<quad>();
+//template void IO::num_symplectic_minim<quad>();
 
 // Explicit routine instantiations for complex<quad>
 //template void IO::sym_scheme<complex<quad>>();
+#if defined(USE_QUAD) && defined(USE_COMPLEX)
 template void IO::num_scheme<complex<quad>>();
+//template void IO::sym_symplectic_scheme<complex<quad>>();
+//template void IO::num_symplectic_scheme<complex<quad>>();
+//template void IO::sym_minim<complex<quad>>();
 template void IO::num_minim<complex<quad>>();
+#endif // defined(USE_QUAD) && defined(USE_COMPLEX)

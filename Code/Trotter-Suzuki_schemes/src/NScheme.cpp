@@ -262,6 +262,7 @@ double NScheme<VectorXd>::err2(const int &order)
   return err2;
 }
 
+#if defined(USE_COMPLEX)
 // Specialization for Vec = VectorXcd
 template <>
 double NScheme<VectorXcd>::err2(const int &order)
@@ -302,6 +303,7 @@ double NScheme<VectorXcd>::err2(const int &order)
   }
   return err2;
 }
+#endif // defined(USE_COMPLEX)
 
 // Specialization for Vec = VectorXld
 template <>
@@ -344,6 +346,7 @@ long double NScheme<VectorXld>::err2(const int &order)
   return err2;
 }
 
+#if defined(USE_COMPLEX)
 // Specialization for Vec = VectorXcld
 template <>
 long double NScheme<VectorXcld>::err2(const int &order)
@@ -384,7 +387,9 @@ long double NScheme<VectorXcld>::err2(const int &order)
   }
   return err2;
 }
+#endif // defined(USE_COMPLEX)
 
+#if defined(USE_QUAD)
 // Specialization for Vec = VectorXQ
 template <>
 quad NScheme<VectorXQ>::err2(const int &order)
@@ -425,7 +430,9 @@ quad NScheme<VectorXQ>::err2(const int &order)
   }
   return err2;
 }
+#endif // defined(USE_QUAD)
 
+#if defined(USE_QUAD) && defined(USE_COMPLEX)
 // Specialization for Vec = VectorXcQ
 template <>
 quad NScheme<VectorXcQ>::err2(const int &order)
@@ -466,6 +473,7 @@ quad NScheme<VectorXcQ>::err2(const int &order)
   }
   return err2;
 }
+#endif // defined(USE_QUAD) && defined(USE_COMPLEX)
 
 
 // Method, which calculates the efficiency for the desired order
@@ -503,6 +511,7 @@ void NScheme<VectorXd>::display_err2()
   }
 }
 
+#if defined(USE_COMPLEX)
 // Specialization for Vec = VectorXcd
 template <>
 void NScheme<VectorXcd>::display_err2()
@@ -529,6 +538,7 @@ void NScheme<VectorXcd>::display_err2()
     cout << string(22, ' ') << setprecision(10) << "Err8 = " << err2(8) << endl;
   }
 }
+#endif // defined(USE_COMPLEX)
 
 // Specialization for Vec = VectorXld
 template <>
@@ -557,6 +567,7 @@ void NScheme<VectorXld>::display_err2()
   }
 }
 
+#if defined(USE_COMPLEX)
 // Specialization for Vec = VectorXcld
 template <>
 void NScheme<VectorXcld>::display_err2()
@@ -583,7 +594,9 @@ void NScheme<VectorXcld>::display_err2()
     cout << string(22, ' ') << setprecision(10) << "Err8 = " << err2(8) << endl;
   }
 }
+#endif // defined(USE_COMPLEX)
 
+#if defined(USE_QUAD)
 // Specialization for Vec = VectorXQ
 template <>
 void NScheme<VectorXQ>::display_err2()
@@ -610,7 +623,9 @@ void NScheme<VectorXQ>::display_err2()
     cout << string(22, ' ') << setprecision(10) << "Err8 = " << err2(8) << endl;
   }
 }
+#endif // defined(USE_QUAD)
 
+#if defined(USE_QUAD) && defined(USE_COMPLEX)
 // Specialization for Vec = VectorXcQ
 template <>
 void NScheme<VectorXcQ>::display_err2()
@@ -637,6 +652,7 @@ void NScheme<VectorXcQ>::display_err2()
     cout << string(22, ' ') << setprecision(10) << "Err8 = " << err2(8) << endl;
   }
 }
+#endif // defined(USE_QUAD) && defined(USE_COMPLEX)
 
 // Method, which displays squared errors for errors of different order (if known)
 // Specialization for Vec = VectorXd
@@ -706,6 +722,7 @@ void NScheme<VectorXd>::display_eff()
   }
 }
 
+#if defined(USE_COMPLEX)
 // Specialization for Vec = VectorXcd
 template <>
 void NScheme<VectorXcd>::display_eff()
@@ -772,6 +789,7 @@ void NScheme<VectorXcd>::display_eff()
     cout << string(19, ' ') << "Eff8 = " << eff8 << endl;
   }
 }
+#endif // defined(USE_COMPLEX)
 
 // Specialization for Vec = VectorXld
 template <>
@@ -840,6 +858,7 @@ void NScheme<VectorXld>::display_eff()
   }
 }
 
+#if defined(USE_COMPLEX)
 // Specialization for Vec = VectorXcld
 template <>
 void NScheme<VectorXcld>::display_eff()
@@ -906,7 +925,9 @@ void NScheme<VectorXcld>::display_eff()
     cout << string(19, ' ') << "Eff8 = " << eff8 << endl;
   }
 }
+#endif // defined(USE_COMPLEX)
 
+#if defined(USE_QUAD)
 // Specialization for Vec = VectorXQ
 template <>
 void NScheme<VectorXQ>::display_eff()
@@ -973,7 +994,9 @@ void NScheme<VectorXQ>::display_eff()
     cout << string(19, ' ') << "Eff8 = " << eff8 << endl;
   }
 }
+#endif // defined(USE_QUAD)
 
+#if defined(USE_QUAD) && defined(USE_COMPLEX)
 // Specialization for Vec = VectorXcQ
 template <>
 void NScheme<VectorXcQ>::display_eff()
@@ -1040,12 +1063,21 @@ void NScheme<VectorXcQ>::display_eff()
     cout << string(19, ' ') << "Eff8 = " << eff8 << endl;
   }
 }
+#endif // defined(USE_QUAD) && defined(USE_COMPLEX)
 
 
 // Explicit instantiation for the template class
 template class NScheme<VectorXd>;
+#if defined(USE_COMPLEX)
 template class NScheme<VectorXcd>;
+#endif // defined(USE_COMPLEX)
 template class NScheme<VectorXld>;
+#if defined(USE_COMPLEX)
 template class NScheme<VectorXcld>;
+#endif // defined(USE_COMPLEX)
+#if defined(USE_QUAD)
 template class NScheme<VectorXQ>;
+#endif // defined(USE_QUAD)
+#if defined(USE_QUAD) && defined(USE_COMPLEX)
 template class NScheme<VectorXcQ>;
+#endif // defined(USE_QUAD) && defined(USE_COMPLEX)

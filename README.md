@@ -31,11 +31,12 @@ Furthermore, properties of the Jacobian on the manifolds at orders $n = 6, 8$ gi
 Polynomial manifolds constructed from the recursive formulae need to be minimized in order to find efficient Trotterizations.
 The code for this is written in C++ (see folder [Trotter-Suzuki_schemes](Code/Trotter-Suzuki_schemes)), which can be built using CMake (look for `build-run_instructions.txt`).
 The main dependency is on a linear algebra library called Eigen (found at https://eigen.tuxfamily.org/), while other modules can be found within the standard C++ library.
-For quad precision the program is also linked against GCC's `libquadmath`, so it has to be built with GCC.
+It also needs the header-only Boost.Multiprecision library.
+By default only real double and long double parameters are compiled; quad precision and complex parameters are switched on with the CMake options `USE_QUAD` and `USE_COMPLEX`, where quad precision additionally requires GCC and `libquadmath`.
 
 There are multiple routines, which are first split between the symbolic and numeric implementation of the formulae.
 Furthermore, the routines split between scheme evaluation at specific parameters and their minimization.
-The minimizer is a Levenberg-Marquardt algorithm, optionally with geodesic acceleration, and it supports schemes up to order $n = 8$ in double, long double and quad precision.
+The minimizer is a Levenberg-Marquardt algorithm, optionally with geodesic acceleration and restricted to compositions of second-order schemes, and it supports schemes up to order $n = 8$ in double, long double and quad precision.
 The program can be run by `/path_to_build/main input_file.in`, where the `input_file.in` specifies the routine and its parameters.
 More details on specific subroutines and their usage can be found in `README-Trotter.md` within [Trotter-Suzuki_schemes](Code/Trotter-Suzuki_schemes).
 

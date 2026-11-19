@@ -193,6 +193,7 @@ const vector<long double> Prefactors<long double>::epsilons = {
     -1.0 / 60480.0L,
     -1.0 / 1209600.0L};
 
+#if defined(USE_QUAD)
 // Specialization for quad type
 template <>
 const quad Prefactors<quad>::alpha = -1.0 / 24.0Q;
@@ -288,6 +289,7 @@ const vector<quad> Prefactors<quad>::epsilons = {
     1.0 / 50400.0Q,
     -1.0 / 60480.0Q,
     -1.0 / 1209600.0Q};
+#endif // defined(USE_QUAD)
 
 // Default constructor for Prefactors
 template <typename RealT>
@@ -304,4 +306,6 @@ Prefactors<RealT>::~Prefactors()
 // Explicit instantiation for the template class
 template class Prefactors<double>;
 template class Prefactors<long double>;
+#if defined(USE_QUAD)
 template class Prefactors<quad>;
+#endif // defined(USE_QUAD)

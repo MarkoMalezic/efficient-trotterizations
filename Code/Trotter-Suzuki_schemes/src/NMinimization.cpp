@@ -4,8 +4,9 @@
 template <typename Vec>
 NMinimization<Vec>::NMinimization(const Vec &a_init, const Vec &b_init, const RealT step,
                                   const int &n, const int &q, const vector<RealT> &W_vec,
-                                  const int &n_iter, const array<RealT, 4> eps, const array<RealT, 2> Ls)
-    : a_vec(a_init), b_vec(b_init), n(n), q(q), step(step), n_iter(n_iter), eps(eps), Ls(Ls)
+                                  const int &n_iter, const array<RealT, 4> eps, const array<RealT, 2> Ls,
+                                  const bool &comp)
+    : a_vec(a_init), b_vec(b_init), n(n), q(q), comp(comp), step(step), n_iter(n_iter), eps(eps), Ls(Ls)
 {
   // Construct the diagonal weigths matrix
   if constexpr (is_same_v<Vec, VectorXd> || is_same_v<Vec, VectorXcd>)
@@ -31,9 +32,30 @@ NMinimization<Vec>::NMinimization(const Vec &a_init, const Vec &b_init, const Re
     nps = {(q + 1) / 2, (q + 1) / 2};
   }
 
+  // The number of free parameters: in composition mode the ai follow from the bi and the
+  // sum of the ai is fixed automatically, otherwise both ai and bi have one sum constraint
+  if (comp)
+  {
+    if (q < 3)
+    {
+      throw invalid_argument("Composition mode requires at least q = 3 cycles.");
+    }
+    npar = nps[0] - 1;
+  }
+  else
+  {
+    npar = nps[0] + nps[1] - 2;
+  }
+
   if (a_vec.size() != nps[1] || b_vec.size() != nps[0])
   {
     throw invalid_argument("Size of input vectors does not match expected dimensions.");
+  }
+
+  // Project the initial vectors onto the composition submanifold (keeps the free parameters)
+  if (comp)
+  {
+    from_free(to_free(a_vec, b_vec), a_vec, b_vec);
   }
 
   // The number of polynomials we need depends on the given order
@@ -67,8 +89,9 @@ NMinimization<Vec>::NMinimization(const Vec &a_init, const Vec &b_init, const Re
 // Overloaded constructor for NMinimization
 template <typename Vec>
 NMinimization<Vec>::NMinimization(const RealT step, const int &n, const int &q, const vector<RealT> &W_vec,
-                                  const int &n_iter, const array<RealT, 4> eps, const array<RealT, 2> Ls)
-    : n(n), q(q), step(step), n_iter(n_iter), eps(eps), Ls(Ls)
+                                  const int &n_iter, const array<RealT, 4> eps, const array<RealT, 2> Ls,
+                                  const bool &comp)
+    : n(n), q(q), comp(comp), step(step), n_iter(n_iter), eps(eps), Ls(Ls)
 {
   // Construct the diagonal weigths matrix
   if constexpr (is_same_v<Vec, VectorXd> || is_same_v<Vec, VectorXcd>)
@@ -92,6 +115,21 @@ NMinimization<Vec>::NMinimization(const RealT step, const int &n, const int &q, 
   else
   {
     nps = {(q + 1) / 2, (q + 1) / 2};
+  }
+
+  // The number of free parameters: in composition mode the ai follow from the bi and the
+  // sum of the ai is fixed automatically, otherwise both ai and bi have one sum constraint
+  if (comp)
+  {
+    if (q < 3)
+    {
+      throw invalid_argument("Composition mode requires at least q = 3 cycles.");
+    }
+    npar = nps[0] - 1;
+  }
+  else
+  {
+    npar = nps[0] + nps[1] - 2;
   }
 
   a_vec = Vec(nps[1]);
@@ -131,6 +169,86 @@ NMinimization<Vec>::~NMinimization()
 {
 }
 
+// Method to extract the free parameters from a_eval, b_eval
+// Full mode: all ai and bi except the outermost ones, which are fixed by the sum constraints
+// Composition mode: the inner parameters, ordered as (a1, ..., a_{nb-1}) for even q and
+//                   (b1, a1, ..., a_{nb-2}) for odd q, with index 1 being the middle of the scheme
+template <typename Vec>
+Vec NMinimization<Vec>::to_free(const Vec &a_eval, const Vec &b_eval) const
+{
+  Vec p(npar);
+  if (!comp)
+  {
+    p.head(nps[1] - 1) = a_eval.head(nps[1] - 1);
+    p.tail(nps[0] - 1) = b_eval.head(nps[0] - 1);
+  }
+  else if (q % 2 == 0)
+  {
+    p = a_eval.head(npar);
+  }
+  else
+  {
+    p[0] = b_eval[0];
+    p.tail(npar - 1) = a_eval.head(npar - 1);
+  }
+  return p;
+}
+
+// Method to fill a_eval, b_eval from the free parameters p (a_eval, b_eval must already have the right size)
+// Full mode: the outermost ai and bi follow from the sum constraints
+// Composition mode: going outwards, the inner bi follow from the free ai by inverting the
+//                   composition relations (see comp_to_a), the outermost bi from the sum constraint
+//                   and the two outermost ai from the composition relations
+template <typename Vec>
+void NMinimization<Vec>::from_free(const Vec &p, Vec &a_eval, Vec &b_eval) const
+{
+  if (!comp)
+  {
+    a_eval.head(nps[1] - 1) = p.head(nps[1] - 1);
+    a_eval[nps[1] - 1] = static_cast<Scalar>(1.0) - a_eval.head(nps[1] - 1).sum();
+    b_eval.head(nps[0] - 1) = p.tail(nps[0] - 1);
+    b_eval[nps[0] - 1] = static_cast<Scalar>(1.0) - b_eval.head(nps[0] - 1).sum();
+    return;
+  }
+
+  // Number of free ai
+  int n_fa;
+  if (q % 2 == 0)
+  {
+    n_fa = npar;
+    a_eval.head(n_fa) = p;
+    // a1 = b1/2, ai = (b_{i-1} + bi)/2
+    b_eval[0] = RealT(2.0) * a_eval[0];
+    for (int i{1}; i < nps[0] - 1; ++i)
+    {
+      b_eval[i] = RealT(2.0) * a_eval[i] - b_eval[i - 1];
+    }
+  }
+  else
+  {
+    n_fa = npar - 1;
+    b_eval[0] = p[0];
+    a_eval.head(n_fa) = p.tail(n_fa);
+    // a1 = b1 + b2/2, ai = (bi + b_{i+1})/2
+    for (int i{0}; i < nps[0] - 2; ++i)
+    {
+      if (i == 0)
+      {
+        b_eval[1] = RealT(2.0) * (a_eval[0] - b_eval[0]);
+      }
+      else
+      {
+        b_eval[i + 1] = RealT(2.0) * a_eval[i] - b_eval[i];
+      }
+    }
+  }
+  // The outermost bi from the sum constraint
+  b_eval[nps[0] - 1] = static_cast<Scalar>(1.0) - b_eval.head(nps[0] - 1).sum();
+  // The remaining (outermost) ai from the composition relations
+  Vec a_comp{comp_to_a(q, b_eval)};
+  a_eval.tail(nps[1] - n_fa) = a_comp.tail(nps[1] - n_fa);
+}
+
 // Method to construct the vector y
 template <typename Vec>
 Vec NMinimization<Vec>::y_eval(const Vec &a_eval, const Vec &b_eval)
@@ -168,13 +286,25 @@ Vec NMinimization<Vec>::y_eval(const Vec &a_eval, const Vec &b_eval)
 template <typename Vec>
 Vec NMinimization<Vec>::y_eval_origin(const Vec &a_eval, const Vec &b_eval, const RealT &ratio)
 {
+  // The distance from the origin is not holomorphic in complex parameters (it needs |c - 1/(2q)|),
+  // so it does not fit the complex LM framework (holomorphic residuals, real-step Jacobian)
+  if constexpr (Eigen::NumTraits<typename Vec::Scalar>::IsComplex)
+  {
+    throw invalid_argument("The origin methods are not implemented for complex scalar types.");
+  }
+
   NScheme scheme(n, q, a_eval, b_eval, 0);
   scheme.iterate();
   Vec y(m+1);
   y(0) = scheme.coefs.alpha;
   y(1) = scheme.coefs.beta;
   // Fill up the y_eval vector with the coefficents (multiplied by the 1-ratio factor in the final order)
-  if (n == 4)
+  if (n == 2)
+  {
+    y(0) *= (1 - ratio);
+    y(1) *= (1 - ratio);
+  }
+  else if (n == 4)
   {
     for (size_t i{0}; i < scheme.coefs.gammas.size(); ++i)
     {
@@ -223,6 +353,29 @@ Vec NMinimization<Vec>::y_eval_origin(const Vec &a_eval, const Vec &b_eval, cons
 template <typename Vec>
 typename NMinimization<Vec>::Mat NMinimization<Vec>::jacobian()
 {
+  // In composition mode take the central differences along the free parameters directly,
+  // the dependent parameters follow linearly, such that the chain rule is already included
+  if (comp)
+  {
+    Vec p{to_free(a_vec, b_vec)};
+    Vec a_p{a_vec};
+    Vec b_p{b_vec};
+    Vec a_m{a_vec};
+    Vec b_m{b_vec};
+    Mat J(m, npar);
+    for (int j = 0; j < npar; ++j)
+    {
+      Vec p_jp{p};
+      p_jp(j) += step;
+      Vec p_jm{p};
+      p_jm(j) -= step;
+      from_free(p_jp, a_p, b_p);
+      from_free(p_jm, a_m, b_m);
+      J.col(j) = (y_eval(a_p, b_p) - y_eval(a_m, b_m)) / (2 * step);
+    }
+    return J;
+  }
+
   // Firstly calculate the derivatives of aq (second term in the chain rule over ai derivatives)
   Vec aqp{a_vec};
   aqp(nps[1] - 1) += step;
@@ -326,6 +479,12 @@ typename NMinimization<Vec>::Mat NMinimization<Vec>::jacobian_origin(const RealT
 }
 
 // Method to construct the directional derivative (for the geodesic acceleration)
+// Returns f_vv in residual space (same dimension as y), following
+// f_vv = (2/step) * [ (f(x + step*hhat) - f(x))/step - J*hhat ] * |h|^2
+// The finite-difference perturbation is taken along the *normalized* direction hhat = h/|h|
+// with a fixed step size, then rescaled by |h|^2 (D^2f[h,h] = |h|^2 D^2f[hhat,hhat]).
+// This keeps the finite-difference perturbation well resolved numerically even when
+// |h| itself is tiny (e.g. close to convergence), instead of shrinking away with h.
 template <typename Vec>
 Vec NMinimization<Vec>::dir_deriv(const Vec &y, const Vec &h, const Mat &J)
 {
@@ -333,15 +492,11 @@ Vec NMinimization<Vec>::dir_deriv(const Vec &y, const Vec &h, const Mat &J)
   Vec hhat{h / hnorm};
 
   // Build the perturbed a_vec/b_vec by stepping the free parameters along hhat
-  // and re-imposing the sum-to-one constraint on the last component, consistent
+  // and re-imposing the constraints on the dependent components, consistent
   // with how the constrained Jacobian derivatives are defined (see jacobian()).
   Vec a_pert(nps[1]);
-  a_pert.head(nps[1] - 1) = a_vec.head(nps[1] - 1) + step * hhat.head(nps[1] - 1);
-  a_pert[nps[1] - 1] = static_cast<Scalar>(1.0) - a_pert.head(nps[1] - 1).sum();
-
   Vec b_pert(nps[0]);
-  b_pert.head(nps[0] - 1) = b_vec.head(nps[0] - 1) + step * hhat.tail(nps[0] - 1);
-  b_pert[nps[0] - 1] = static_cast<Scalar>(1.0) - b_pert.head(nps[0] - 1).sum();
+  from_free(to_free(a_vec, b_vec) + step * hhat, a_pert, b_pert);
 
   // Evaluate y at a small, fixed-size step along the normalized direction hhat
   Vec step_y = y_eval(a_pert, b_pert);
@@ -384,9 +539,9 @@ MinResult<Vec> NMinimization<Vec>::minimize(RealT lambda, const HessMatrixForVec
   }
   Mat diag{JtWJ.diagonal().asDiagonal()}; // The diagonal elements of the approximate Hessian
 
-  Mat left(nps[0] + nps[1] - 2, nps[0] + nps[1] - 2); // The lefthand side of the step h equation
+  Mat left(npar, npar); // The lefthand side of the step h equation
 
-  Vec h(nps[0] + nps[1] - 2); // The step vector
+  Vec h(npar); // The step vector
   Vec hovera{h.size()};       // Vector h / a (needed for the convergence condition)
 
   // The new vectors a_vecn, b_vecn
@@ -396,9 +551,6 @@ MinResult<Vec> NMinimization<Vec>::minimize(RealT lambda, const HessMatrixForVec
   // The Chi squared values
   RealT chi2{compute_chi2(y, W)}; // Initial Chi2 values
   RealT chi2n;                    // The new Chi2 value, computed from a_vecn, b_vecn
-
-  // The metric used to accept the step or not
-  RealT metric;
 
   // Iterate the minimization until convergence or until the maximal number of iterations is passed
   for (int iter{0}; iter < n_iter; ++iter)
@@ -431,8 +583,7 @@ MinResult<Vec> NMinimization<Vec>::minimize(RealT lambda, const HessMatrixForVec
     h = left.ldlt().solve(JtWy);
 
     // Compute h / a and check for convergence in the variables
-    hovera.head(nps[1] - 1) = a_vec.head(nps[1] - 1);
-    hovera.tail(nps[0] - 1) = b_vec.head(nps[0] - 1);
+    hovera = to_free(a_vec, b_vec);
     hovera = h.array() / hovera.array();
     if (hovera.array().abs().maxCoeff() < eps[1])
     {
@@ -441,12 +592,8 @@ MinResult<Vec> NMinimization<Vec>::minimize(RealT lambda, const HessMatrixForVec
       break;
     }
 
-    // Add the step to the new vectors a_vecn
-    a_vecn.head(nps[1] - 1) = h.head(nps[1] - 1) + a_vec.head(nps[1] - 1);
-    a_vecn[nps[1] - 1] = static_cast<Scalar>(1.0) - a_vecn.head(nps[1] - 1).sum();
-    // and b_vecn
-    b_vecn.head(nps[0] - 1) = h.tail(nps[0] - 1) + b_vec.head(nps[0] - 1);
-    b_vecn[nps[0] - 1] = static_cast<Scalar>(1.0) - b_vecn.head(nps[0] - 1).sum();
+    // Add the step to the free parameters and construct the new vectors a_vecn, b_vecn
+    from_free(to_free(a_vec, b_vec) + h, a_vecn, b_vecn);
 
     // Evaluate the polynomials with the new vectors a_vecn, b_vecn
     yn = y_eval(a_vecn, b_vecn);
@@ -454,7 +601,7 @@ MinResult<Vec> NMinimization<Vec>::minimize(RealT lambda, const HessMatrixForVec
     chi2n = compute_chi2(yn, W);
 
     // Check for convergence in the reduced Chi2 function
-    if (chi2n / (m - nps[0] - nps[1] + 2) < eps[2] && m > nps[0] + nps[1] - 2)
+    if (chi2n / (m - npar) < eps[2] && m > npar)
     {
       mini.conv = 3;
       mini.iter = iter + 1;
@@ -465,201 +612,20 @@ MinResult<Vec> NMinimization<Vec>::minimize(RealT lambda, const HessMatrixForVec
     if (chi2 - chi2n > -eps[3])
     {
       // Calculate the difference in change for a_vec and b_vec and store in MinResult
-      mini.da_vec.head(nps[1] - 1) = h.head(nps[1] - 1);
-      mini.da_vec[nps[1] - 1] = a_vecn[nps[1] - 1] - a_vec[nps[1] - 1];
-
-      mini.db_vec.head(nps[0] - 1) = h.tail(nps[0] - 1);
-      mini.db_vec[nps[0] - 1] = b_vecn[nps[0] - 1] - b_vec[nps[0] - 1];
-
-      // Increase the damping coefficient
-      lambda = max(lambda / Ls[0], static_cast<RealT>(1e-12));
-
-      // Replace the evaluated polynomials and the Chi2
-      y = move(yn);
-      chi2 = move(chi2n);
-      // Replace the a_vec, b_vec with the new vectors a_vecn, b_vecn
-      a_vec = move(a_vecn);
-      b_vec = move(b_vecn);
-
-      // Compute the new Jacobian
-      J = jacobian();
-      JtW = compute_JtW(J, W);
-      JtWy = -JtW * y;
-      if (!hess)
+      if (!comp)
       {
-        JtWJ = compute_hess<Mat, Vec>(J, JtW);
-        diag = JtWJ.diagonal().asDiagonal();
+        mini.da_vec.head(nps[1] - 1) = h.head(nps[1] - 1);
+        mini.da_vec[nps[1] - 1] = a_vecn[nps[1] - 1] - a_vec[nps[1] - 1];
+
+        mini.db_vec.head(nps[0] - 1) = h.tail(nps[0] - 1);
+        mini.db_vec[nps[0] - 1] = b_vecn[nps[0] - 1] - b_vec[nps[0] - 1];
       }
-    }
-    else
-    {
-      // Otherwise, decrease the damping coefficient
-      lambda = min(lambda * Ls[1], static_cast<RealT>(1e7));
-    }
-  }
-
-  // Store the minimization results in MinResult mini
-  if (mini.conv == 0)
-  {
-    mini.iter = n_iter;
-  }
-
-  if (n == 2)
-  {
-    mini.err2 = pow(abs(y[0]), 2) + pow(abs(y[1]), 2);
-  }
-  else if (n == 4)
-  {
-    for (int i{0}; i < 6; ++i)
-    {
-      mini.err2 += pow(abs(y[i+2]), 2);
-    }
-  }
-  else if (n == 6)
-  {
-    for (int i{0}; i < 18; ++i)
-    {
-      mini.err2 += pow(abs(y[i+8]), 2);
-    }
-  }
-  else if (n == 8)
-  {
-    for (int i{0}; i < 56; ++i)
-    {
-      mini.err2 += pow(abs(y[i+26]), 2);
-    }
-  }
-
-  mini.hess = JtWJ;
-  mini.a_vec = a_vec;
-  mini.b_vec = b_vec;
-
-  return mini;
-}
-
-// Method to minimize the polynomial manifold using geodesic acceleration
-// Input: - lambda, initial value for the damping coefficent
-//        - hessian, fixed hessian matrix (if provided it is used throughout the minimization)
-//        - verbose, if true the method displays the intermediate results of the minimization
-//        - geod_eps, convergence parameter for the geodesic acceleration
-template <typename Vec>
-MinResult<Vec> NMinimization<Vec>::minimize_geodesic(RealT lambda, const HessMatrixForVector_t<Vec> *hess, const bool &verbose, const RealT &geod_eps)
-{
-  // Declare minimization results
-  MinResult<Vec> mini(nps);
-
-  // Declare variables and initialize some of them in the first step
-  Vec y{y_eval(a_vec, b_vec)}; // Vector of evaluated polynomials
-  Vec yn{};                    // Vector of evaluated polynomials for the new vectors a_vecn, b_vecn
-
-  Mat J{jacobian()};               // The Jacobian matrix
-  Mat JtW{compute_JtW(J, W)};      // Compute the transpose/adjoint J * weights
-  Vec JtWy{-JtW * y};              // The righthand side of the step h equation
-  HessMatrixForVector_t<Vec> JtWJ; // The approximate Hessian matrix
-  if (hess)
-  {
-    JtWJ = *hess; // Use the provided Hessian if available
-  }
-  else
-  {
-    JtWJ = compute_hess<Mat, Vec>(J, JtW); // Compute the approximate Hessian if not provided
-  }
-  Mat diag{JtWJ.diagonal().asDiagonal()}; // The diagonal elements of the approximate Hessian
-
-  Mat left(nps[0] + nps[1] - 2, nps[0] + nps[1] - 2); // The lefthand side of the step h equation
-
-  Vec h(nps[0] + nps[1] - 2); // The step vector
-  Vec hovera{h.size()};       // Vector h / a (needed for the convergence condition)
-
-  Vec fvv(m);                    // Directional derivative, in residual space (for the geodesic acceleration)
-  Vec a(nps[0] + nps[1] - 2);    // The solution of the geodesic acceleration equation
-  Vec v(nps[0] + nps[1] - 2);    // The original step h (needed for the geodesic acceleration convergence condition)
-
-  // The new vectors a_vecn, b_vecn
-  Vec a_vecn(nps[1]);
-  Vec b_vecn(nps[0]);
-
-  // The Chi squared values
-  RealT chi2{compute_chi2(y, W)}; // Initial Chi2 values
-  RealT chi2n;                    // The new Chi2 value, computed from a_vecn, b_vecn
-
-  // Iterate the minimization until convergence or until the maximal number of iterations is passed
-  for (int iter{0}; iter < n_iter; ++iter)
-  {
-    // Print the values of the current iteration
-    if (verbose)
-    {
-      cout << "iteration: " << iter + 1 << endl;
-      cout << fixed << setprecision(12);
-      cout << "a_vec:" << endl
-           << a_vec << endl;
-      cout << "b_vec:" << endl
-           << b_vec << endl;
-      cout << "Chi2 = " << setprecision(5) << scientific << chi2 << endl;
-      cout << string(30, '-') << endl;
-    }
-
-    // Check if the gradient has converged
-    if (JtWy.array().abs().maxCoeff() < eps[0])
-    {
-      mini.conv = 1;
-      mini.iter = iter + 1;
-      break;
-    }
-
-    // Evaluate the left-hand side of the step equation
-    left = JtWJ + lambda * diag;
-
-    // Solve the step equation
-    h = left.ldlt().solve(JtWy);
-
-    // Geodesic acceleration
-    fvv = dir_deriv(y, h, J);         // Directional second derivative, in residual space
-    Vec JtWfvv{JtW * fvv};            // Project into parameter space
-    a = left.ldlt().solve(-JtWfvv);   // Solve the geodesic acceleration equation
-    v = h;                            // Store the original step h in v
-    h += a * static_cast<Scalar>(0.5); // Update the step h with the geodesic acceleration term
-
-    // Compute h / a and check for convergence in the variables
-    hovera.head(nps[1] - 1) = a_vec.head(nps[1] - 1);
-    hovera.tail(nps[0] - 1) = b_vec.head(nps[0] - 1);
-    hovera = h.array() / hovera.array();
-    if (hovera.array().abs().maxCoeff() < eps[1])
-    {
-      mini.conv = 2;
-      mini.iter = iter + 1;
-      break;
-    }
-
-    // Add the step to the new vectors a_vecn
-    a_vecn.head(nps[1] - 1) = h.head(nps[1] - 1) + a_vec.head(nps[1] - 1);
-    a_vecn[nps[1] - 1] = static_cast<Scalar>(1.0) - a_vecn.head(nps[1] - 1).sum();
-    // and b_vecn
-    b_vecn.head(nps[0] - 1) = h.tail(nps[0] - 1) + b_vec.head(nps[0] - 1);
-    b_vecn[nps[0] - 1] = static_cast<Scalar>(1.0) - b_vecn.head(nps[0] - 1).sum();
-
-    // Evaluate the polynomials with the new vectors a_vecn, b_vecn
-    yn = y_eval(a_vecn, b_vecn);
-    // Compute the new Chi2 value
-    chi2n = compute_chi2(yn, W);
-
-    // Check for convergence in the reduced Chi2 function
-    if (chi2n / (m - nps[0] - nps[1] + 2) < eps[2] && m > nps[0] + nps[1] - 2)
-    {
-      mini.conv = 3;
-      mini.iter = iter + 1;
-      break;
-    }
-
-    // Accept the step if the difference is larger than the tolerance (always go downhill with some numerical instability tolerance)
-    if (chi2 - chi2n > -eps[3] && 2 * a.norm() / v.norm() <= geod_eps)
-    {
-      // Calculate the difference in change for a_vec and b_vec and store in MinResult
-      mini.da_vec.head(nps[1] - 1) = h.head(nps[1] - 1);
-      mini.da_vec[nps[1] - 1] = a_vecn[nps[1] - 1] - a_vec[nps[1] - 1];
-
-      mini.db_vec.head(nps[0] - 1) = h.tail(nps[0] - 1);
-      mini.db_vec[nps[0] - 1] = b_vecn[nps[0] - 1] - b_vec[nps[0] - 1];
+      // In composition mode the step h only contains the free parameters
+      else
+      {
+        mini.da_vec = a_vecn - a_vec;
+        mini.db_vec = b_vecn - b_vec;
+      }
 
       // Decrease the damping coefficient
       lambda = max(lambda / Ls[0], static_cast<RealT>(1e-12));
@@ -727,6 +693,202 @@ MinResult<Vec> NMinimization<Vec>::minimize_geodesic(RealT lambda, const HessMat
   return mini;
 }
 
+
+// Method to minimize the polynomial manifold using geodesic acceleration
+// Input: - lambda, initial value for the damping coefficent
+//        - hessian, fixed hessian matrix (if provided it is used throughout the minimization)
+//        - verbose, if true the method displays the intermediate results of the minimization
+//        - geod_eps, convergence parameter for the geodesic acceleration
+template <typename Vec>
+MinResult<Vec> NMinimization<Vec>::minimize_geodesic(RealT lambda, const HessMatrixForVector_t<Vec> *hess, const bool &verbose, const RealT &geod_eps)
+{
+  // Declare minimization results
+  MinResult<Vec> mini(nps);
+
+  // Declare variables and initialize some of them in the first step
+  Vec y{y_eval(a_vec, b_vec)}; // Vector of evaluated polynomials
+  Vec yn{};                    // Vector of evaluated polynomials for the new vectors a_vecn, b_vecn
+
+  Mat J{jacobian()};               // The Jacobian matrix
+  Mat JtW{compute_JtW(J, W)};      // Compute the transpose/adjoint J * weights
+  Vec JtWy{-JtW * y};              // The righthand side of the step h equation
+  HessMatrixForVector_t<Vec> JtWJ; // The approximate Hessian matrix
+  if (hess)
+  {
+    JtWJ = *hess; // Use the provided Hessian if available
+  }
+  else
+  {
+    JtWJ = compute_hess<Mat, Vec>(J, JtW); // Compute the approximate Hessian if not provided
+  }
+  Mat diag{JtWJ.diagonal().asDiagonal()}; // The diagonal elements of the approximate Hessian
+
+  Mat left(npar, npar); // The lefthand side of the step h equation
+
+  Vec h(npar); // The step vector
+  Vec hovera{h.size()};       // Vector h / a (needed for the convergence condition)
+
+  Vec fvv(m);                    // Directional derivative, in residual space (for the geodesic acceleration)
+  Vec a(npar);    // The solution of the geodesic acceleration equation
+  Vec v(npar);    // The original step h (needed for the geodesic acceleration convergence condition)
+
+  // The new vectors a_vecn, b_vecn
+  Vec a_vecn(nps[1]);
+  Vec b_vecn(nps[0]);
+
+  // The Chi squared values
+  RealT chi2{compute_chi2(y, W)}; // Initial Chi2 values
+  RealT chi2n;                    // The new Chi2 value, computed from a_vecn, b_vecn
+
+  // Iterate the minimization until convergence or until the maximal number of iterations is passed
+  for (int iter{0}; iter < n_iter; ++iter)
+  {
+    // Print the values of the current iteration
+    if (verbose)
+    {
+      cout << "iteration: " << iter + 1 << endl;
+      cout << fixed << setprecision(12);
+      cout << "a_vec:" << endl
+           << a_vec << endl;
+      cout << "b_vec:" << endl
+           << b_vec << endl;
+      cout << "Chi2 = " << setprecision(5) << scientific << chi2 << endl;
+      cout << string(30, '-') << endl;
+    }
+
+    // Check if the gradient has converged
+    if (JtWy.array().abs().maxCoeff() < eps[0])
+    {
+      mini.conv = 1;
+      mini.iter = iter + 1;
+      break;
+    }
+
+    // Evaluate the left-hand side of the step equation
+    left = JtWJ + lambda * diag;
+
+    // Solve the step equation
+    h = left.ldlt().solve(JtWy);
+
+    // Geodesic acceleration
+    fvv = dir_deriv(y, h, J);         // Directional second derivative, in residual space
+    Vec JtWfvv{JtW * fvv};            // Project into parameter space
+    a = left.ldlt().solve(-JtWfvv);   // Solve the geodesic acceleration equation
+    v = h;                            // Store the original step h in v
+    h += a * static_cast<Scalar>(0.5); // Update the step h with the geodesic acceleration term
+
+    // Compute h / a and check for convergence in the variables
+    hovera = to_free(a_vec, b_vec);
+    hovera = h.array() / hovera.array();
+    if (hovera.array().abs().maxCoeff() < eps[1])
+    {
+      mini.conv = 2;
+      mini.iter = iter + 1;
+      break;
+    }
+
+    // Add the step to the free parameters and construct the new vectors a_vecn, b_vecn
+    from_free(to_free(a_vec, b_vec) + h, a_vecn, b_vecn);
+
+    // Evaluate the polynomials with the new vectors a_vecn, b_vecn
+    yn = y_eval(a_vecn, b_vecn);
+    // Compute the new Chi2 value
+    chi2n = compute_chi2(yn, W);
+
+    // Check for convergence in the reduced Chi2 function
+    if (chi2n / (m - npar) < eps[2] && m > npar)
+    {
+      mini.conv = 3;
+      mini.iter = iter + 1;
+      break;
+    }
+
+    // Accept the step if the difference is larger than the tolerance (always go downhill with some numerical instability tolerance)
+    if (chi2 - chi2n > -eps[3] && 2 * a.norm() / v.norm() <= geod_eps)
+    {
+      // Calculate the difference in change for a_vec and b_vec and store in MinResult
+      if (!comp)
+      {
+        mini.da_vec.head(nps[1] - 1) = h.head(nps[1] - 1);
+        mini.da_vec[nps[1] - 1] = a_vecn[nps[1] - 1] - a_vec[nps[1] - 1];
+
+        mini.db_vec.head(nps[0] - 1) = h.tail(nps[0] - 1);
+        mini.db_vec[nps[0] - 1] = b_vecn[nps[0] - 1] - b_vec[nps[0] - 1];
+      }
+      // In composition mode the step h only contains the free parameters
+      else
+      {
+        mini.da_vec = a_vecn - a_vec;
+        mini.db_vec = b_vecn - b_vec;
+      }
+
+      // Decrease the damping coefficient
+      lambda = max(lambda / Ls[0], static_cast<RealT>(1e-12));
+
+      // Replace the evaluated polynomials and the Chi2
+      y = move(yn);
+      chi2 = move(chi2n);
+      // Replace the a_vec, b_vec with the new vectors a_vecn, b_vecn
+      a_vec = move(a_vecn);
+      b_vec = move(b_vecn);
+
+      // Compute the new Jacobian
+      J = jacobian();
+      JtW = compute_JtW(J, W);
+      JtWy = -JtW * y;
+      if (!hess)
+      {
+        JtWJ = compute_hess<Mat, Vec>(J, JtW);
+        diag = JtWJ.diagonal().asDiagonal();
+      }
+    }
+    else
+    {
+      // Otherwise, increase the damping coefficient
+      lambda = min(lambda * Ls[1], static_cast<RealT>(1e7));
+    }
+  }
+
+  // Store the minimization results in MinResult mini
+  if (mini.conv == 0)
+  {
+    mini.iter = n_iter;
+  }
+
+  if (n == 2)
+  {
+    mini.err2 = pow(abs(y[0]), 2) + pow(abs(y[1]), 2);
+  }
+  else if (n == 4)
+  {
+    for (int i{0}; i < 6; ++i)
+    {
+      mini.err2 += pow(abs(y[i+2]), 2);
+    }
+  }
+  else if (n == 6)
+  {
+    for (int i{0}; i < 18; ++i)
+    {
+      mini.err2 += pow(abs(y[i+8]), 2);
+    }
+  }
+  else if (n == 8)
+  {
+    for (int i{0}; i < 56; ++i)
+    {
+      mini.err2 += pow(abs(y[i+26]), 2);
+    }
+  }
+
+  mini.hess = JtWJ;
+  mini.a_vec = a_vec;
+  mini.b_vec = b_vec;
+
+  return mini;
+}
+
+
 // Method to minimize the polynomial manifold with the additional term (distance from the origin)
 // Input: - ratio, ratio a between the theoretical error at given order and the distance from the mean
 //        - lambda, initial value for the damping coefficent
@@ -735,6 +897,11 @@ MinResult<Vec> NMinimization<Vec>::minimize_geodesic(RealT lambda, const HessMat
 template <typename Vec>
 MinResult<Vec> NMinimization<Vec>::minimize_origin(RealT lambda, const RealT ratio, const HessMatrixForVector_t<Vec> *hess, const bool &verbose)
 {
+  if (comp)
+  {
+    throw invalid_argument("The origin methods are not implemented in composition mode.");
+  }
+
   // Declare minimization results
   MinResult<Vec> mini(nps);
 
@@ -849,7 +1016,7 @@ MinResult<Vec> NMinimization<Vec>::minimize_origin(RealT lambda, const RealT rat
       mini.db_vec.head(nps[0] - 1) = h.tail(nps[0] - 1);
       mini.db_vec[nps[0] - 1] = b_vecn[nps[0] - 1] - b_vec[nps[0] - 1];
 
-      // Increase the damping coefficient
+      // Decrease the damping coefficient
       lambda = max(lambda / Ls[0], static_cast<RealT>(1e-12));
 
       // Replace the evaluated polynomials and the Chi2
@@ -871,7 +1038,7 @@ MinResult<Vec> NMinimization<Vec>::minimize_origin(RealT lambda, const RealT rat
     }
     else
     {
-      // Otherwise, decrease the damping coefficient
+      // Otherwise, increase the damping coefficient
       lambda = min(lambda * Ls[1], static_cast<RealT>(1e7));
     }
   }
@@ -1072,7 +1239,7 @@ MinResult<Vec> NMinimization<Vec>::min_twostep_geodesic(RealT lambda, const arra
   return mini2;
 }
 
-// Method to minimize the polynomial manifold in two steps
+// Method to minimize the polynomial manifold in two steps with the additional term (distance from the origin)
 // First step: minimize with inital weights to enter the region of the minima
 // Second step: Exactly ensure the constraint by adjusting weights and making use of the hessian from the 1. step
 // Input: - lambda, initial value for the damping coefficent
@@ -1190,6 +1357,11 @@ pair<array<vector<Vec>, 4>, vector<int>> NMinimization<Vec>::find(const int &N, 
     ab_vec = sample<Vec, Scalar>(mu, sigma, nps);
     a_vec = ab_vec[0];
     b_vec = ab_vec[1];
+    // In composition mode only the free parameters are kept and the dependent ones are constructed
+    if (comp)
+    {
+      from_free(to_free(a_vec, b_vec), a_vec, b_vec);
+    }
 
     // Take either 1 minimization step or multiple
     if (steps == 1)
@@ -1198,14 +1370,17 @@ pair<array<vector<Vec>, 4>, vector<int>> NMinimization<Vec>::find(const int &N, 
     }
     else
     {
-      // Copy the weights and dimensions to restore them after the two-step minimization
+      // Copy the weights, dimensions and convergence criteria to restore them after the two-step minimization
+      // (min_twostep overwrites eps with eps2 for the second step)
       DiagonalMatrix<RealT, Dynamic> W_copy{W};
       int n_copy{n};
       int m_copy{m};
+      array<RealT, 4> eps_copy{eps};
       mini = min_twostep(lambda, eps2, false, freeze);
       W = W_copy;
       n = n_copy;
       m = m_copy;
+      eps = eps_copy;
     }
 
     if (verbose)
@@ -1361,6 +1536,11 @@ pair<array<vector<Vec>, 4>, vector<int>> NMinimization<Vec>::find_geodesic(const
     ab_vec = sample<Vec, Scalar>(mu, sigma, nps);
     a_vec = ab_vec[0];
     b_vec = ab_vec[1];
+    // In composition mode only the free parameters are kept and the dependent ones are constructed
+    if (comp)
+    {
+      from_free(to_free(a_vec, b_vec), a_vec, b_vec);
+    }
 
     // Take either 1 minimization step or multiple
     if (steps == 1)
@@ -1369,14 +1549,17 @@ pair<array<vector<Vec>, 4>, vector<int>> NMinimization<Vec>::find_geodesic(const
     }
     else
     {
-      // Copy the weights and dimensions to restore them after the two-step minimization
+      // Copy the weights, dimensions and convergence criteria to restore them after the two-step minimization
+      // (min_twostep_geodesic overwrites eps with eps2 for the second step)
       DiagonalMatrix<RealT, Dynamic> W_copy{W};
       int n_copy{n};
       int m_copy{m};
+      array<RealT, 4> eps_copy{eps};
       mini = min_twostep_geodesic(lambda, eps2, false, freeze, geod_eps);
       W = W_copy;
       n = n_copy;
       m = m_copy;
+      eps = eps_copy;
     }
 
     if (verbose)
@@ -1495,8 +1678,16 @@ pair<array<vector<Vec>, 4>, vector<int>> NMinimization<Vec>::find_geodesic(const
 
 // Explicit instantiation for the NMinimization class
 template class NMinimization<VectorXd>;
+#if defined(USE_COMPLEX)
 template class NMinimization<VectorXcd>;
+#endif // defined(USE_COMPLEX)
 template class NMinimization<VectorXld>;
+#if defined(USE_COMPLEX)
 template class NMinimization<VectorXcld>;
+#endif // defined(USE_COMPLEX)
+#if defined(USE_QUAD)
 template class NMinimization<VectorXQ>;
+#endif // defined(USE_QUAD)
+#if defined(USE_QUAD) && defined(USE_COMPLEX)
 template class NMinimization<VectorXcQ>;
+#endif // defined(USE_QUAD) && defined(USE_COMPLEX)

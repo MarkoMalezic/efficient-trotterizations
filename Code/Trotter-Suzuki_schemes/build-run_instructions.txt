@@ -1,6 +1,9 @@
 Build:
 1. Create and go to build directory
-2. Run cmake -DCMAKE_BUILD_TYPE=TYPE -DUSE_O3=BOOL .. (TYPE = Release or Debug, BOOL = ON or OFF)
+2. Run cmake -DCMAKE_BUILD_TYPE=TYPE -DUSE_O3=BOOL -DUSE_QUAD=BOOL -DUSE_COMPLEX=BOOL .. (TYPE = Release or Debug, BOOL = ON or OFF)
+   - USE_QUAD: compile quad precision (scalar_type = quad), requires GCC and libquadmath (default OFF)
+   - USE_COMPLEX: compile complex parameters (scalar_type = complex_double, complex_long_double) (default OFF)
+   - With both ON, complex_quad is also available
 3. Run cmake --build .
 
 Run:

@@ -27,6 +27,10 @@ public:
   // Dimensions
   int m;             // Number of polynomials
   array<int, 2> nps; // Number of parameters
+  int npar;          // Number of free parameters
+
+  // Composition mode (restrict the search to S2-compositions, c_j = d_j)
+  bool comp;
 
   // Weights
   DiagonalMatrix<RealT, Dynamic> W;
@@ -42,17 +46,25 @@ public:
   // NMinimization constructor
   NMinimization(const Vec &a_init, const Vec &b_init, const RealT step,
                 const int &n, const int &q, const vector<RealT> &W_vec,
-                const int &n_iter, const array<RealT, 4> eps, const array<RealT, 2> Ls = {9.0, 11.0});
+                const int &n_iter, const array<RealT, 4> eps, const array<RealT, 2> Ls = {9.0, 11.0},
+                const bool &comp = false);
 
   // Overloaded NMinimization constructor
   NMinimization(const RealT step, const int &n, const int &q, const vector<RealT> &W_vec,
-                const int &n_iter, const array<RealT, 4> eps, const array<RealT, 2> Ls = {9.0, 11.0});
+                const int &n_iter, const array<RealT, 4> eps, const array<RealT, 2> Ls = {9.0, 11.0},
+                const bool &comp = false);
 
   // NMinimization default constructor
   NMinimization();
 
   // NMinimization deconstructor
   ~NMinimization();
+
+  // Method to extract the free parameters from a_eval, b_eval
+  Vec to_free(const Vec &a_eval, const Vec &b_eval) const;
+
+  // Method to fill a_eval, b_eval from the free parameters (dependent parameters follow from the constraints)
+  void from_free(const Vec &p, Vec &a_eval, Vec &b_eval) const;
 
   // Method to construct the vector y
   Vec y_eval(const Vec &a_eval, const Vec &b_eval);
@@ -65,12 +77,6 @@ public:
 
   // Method to construct the Jacobian with the additional term (distance from the origin)
   Mat jacobian_origin(const RealT &ratio);
-
-  // Method to compute the singular values of the Jacobian matrix
-  // Only implemented for double/long double (and their complex counterparts): Eigen's SVD
-  // does not compile efficiently against the boost::multiprecision quad type, which is why
-  // this is gated off (via if constexpr, so it is never instantiated) for VectorXQ/VectorXcQ.
-  Eigen::Matrix<RealT, Dynamic, 1> singular_values();
 
   // Method to construct the directional derivative (for the geodesic acceleration)
   Vec dir_deriv(const Vec &y, const Vec &h, const Mat &J);

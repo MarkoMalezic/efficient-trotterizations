@@ -380,6 +380,7 @@ double Scheme<double>::err2(const int &order, const VectorXd &a_eval, const Vect
   return err2;
 }
 
+#if defined(USE_COMPLEX)
 // Specialization for RealT = double, Vec = VectorXcd
 template <>
 template <>
@@ -413,6 +414,7 @@ double Scheme<double>::err2(const int &order, const VectorXcd &a_eval, const Vec
   }
   return err2;
 }
+#endif // defined(USE_COMPLEX)
 
 // Specialization for RealT = long double, Vec = VectorXld
 template <>
@@ -448,6 +450,7 @@ long double Scheme<long double>::err2(const int &order, const VectorXld &a_eval,
   return err2;
 }
 
+#if defined(USE_COMPLEX)
 // Specialization for RealT = long double, Vec = VectorXcld
 template <>
 template <>
@@ -481,6 +484,7 @@ long double Scheme<long double>::err2(const int &order, const VectorXcld &a_eval
   }
   return err2;
 }
+#endif // defined(USE_COMPLEX)
 
 // Method, which calculates the squared error for the desired order
 // Specialization for RealT = double, Vec = VectorXd
@@ -516,6 +520,7 @@ void Scheme<double>::display_err2(const VectorXd &a_eval, const VectorXd &b_eval
   }
 }
 
+#if defined(USE_COMPLEX)
 // Specialization for RealT = double, Vec = VectorXcd
 template <>
 template <>
@@ -539,6 +544,7 @@ void Scheme<double>::display_err2(const VectorXcd &a_eval, const VectorXcd &b_ev
     cout << string(22, ' ') << setprecision(10) << "Err6 = " << err2(6, a_eval, b_eval) << endl;
   }
 }
+#endif // defined(USE_COMPLEX)
 
 // Specialization for RealT = long double, Vec = VectorXld
 template <>
@@ -564,6 +570,7 @@ void Scheme<long double>::display_err2(const VectorXld &a_eval, const VectorXld 
   }
 }
 
+#if defined(USE_COMPLEX)
 // Specialization for RealT = long double, Vec = VectorXcld
 template <>
 template <>
@@ -587,6 +594,7 @@ void Scheme<long double>::display_err2(const VectorXcld &a_eval, const VectorXcl
     cout << string(22, ' ') << setprecision(10) << "Err6 = " << err2(6, a_eval, b_eval) << endl;
   }
 }
+#endif // defined(USE_COMPLEX)
 
 // Method, which displays squared errors for errors of different order (if known)
 // Specialization for RealT = double, Vec = VectorXd
@@ -646,6 +654,7 @@ void Scheme<double>::display_eff(const VectorXd &a_eval, const VectorXd &b_eval)
   }
 }
 
+#if defined(USE_COMPLEX)
 // Specialization for RealT = double, Vec = VectorXcd
 template <>
 template <>
@@ -705,6 +714,7 @@ void Scheme<double>::display_eff(const VectorXcd &a_eval, const VectorXcd &b_eva
     }
   }
 }
+#endif // defined(USE_COMPLEX)
 
 // Specialization for RealT = long double, Vec = VectorXld
 template <>
@@ -763,6 +773,7 @@ void Scheme<long double>::display_eff(const VectorXld &a_eval, const VectorXld &
   }
 }
 
+#if defined(USE_COMPLEX)
 // Specialization for RealT = long double, Vec = VectorXcld
 template <>
 template <>
@@ -822,12 +833,17 @@ void Scheme<long double>::display_eff(const VectorXcld &a_eval, const VectorXcld
     }
   }
 }
+#endif // defined(USE_COMPLEX)
 
 // Explicit instantiation of eff for required types
 template double Scheme<double>::eff<VectorXd>(const int &, const VectorXd &, const VectorXd &);
+#if defined(USE_COMPLEX)
 template double Scheme<double>::eff<VectorXcd>(const int &, const VectorXcd &, const VectorXcd &);
+#endif // defined(USE_COMPLEX)
 template long double Scheme<long double>::eff<VectorXld>(const int &, const VectorXld &, const VectorXld &);
+#if defined(USE_COMPLEX)
 template long double Scheme<long double>::eff<VectorXcld>(const int &, const VectorXcld &, const VectorXcld &);
+#endif // defined(USE_COMPLEX)
 
 // Explicit instantiation for the template class
 template class Scheme<double>;

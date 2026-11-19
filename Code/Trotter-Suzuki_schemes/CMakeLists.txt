@@ -18,14 +18,34 @@ endif()
 # Option to enable -O3 optimization
 option(USE_O3 "Enable -O3 optimization instead of -O2 in Release mode" OFF)
 
+# Optional scalar types (both OFF by default: they dominate the compilation time)
+#   USE_QUAD    : quad precision (boost cpp_bin_float_quad), scalar_type = quad (+ complex_quad with USE_COMPLEX)
+#   USE_COMPLEX : complex scalar types, scalar_type = complex_double, complex_long_double (+ complex_quad with USE_QUAD)
+# e.g.  cmake -DUSE_QUAD=ON -DUSE_COMPLEX=ON ..
+option(USE_QUAD "Compile support for quad precision" OFF)
+option(USE_COMPLEX "Compile support for complex scalar types" OFF)
+
 # Source files for the main program
 file(GLOB_RECURSE SRC_FILES src/*.cpp)
 
 # Create the main executable
 add_executable(main ${SRC_FILES})
 
-# Link against libquadmath
-target_link_libraries(main PRIVATE quadmath)
+if(USE_QUAD)
+    message(STATUS "Quad precision support: ON")
+    target_compile_definitions(main PRIVATE USE_QUAD)
+    # Link against libquadmath
+    target_link_libraries(main PRIVATE quadmath)
+else()
+    message(STATUS "Quad precision support: OFF (enable with -DUSE_QUAD=ON)")
+endif()
+
+if(USE_COMPLEX)
+    message(STATUS "Complex scalar types: ON")
+    target_compile_definitions(main PRIVATE USE_COMPLEX)
+else()
+    message(STATUS "Complex scalar types: OFF (enable with -DUSE_COMPLEX=ON)")
+endif()
 
 # Apply different compiler options based on the build type
 

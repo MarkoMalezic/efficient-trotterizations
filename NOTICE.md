@@ -25,9 +25,15 @@ SymPy
 The Python package in Code/Recursive_formulae/pybch uses SymPy for symbolic output.
 SymPy is available at https://www.sympy.org/ and is licensed under the BSD 3-Clause License.
 
+Boost.Multiprecision
+--------------------
+The C++ program in Code/Trotter-Suzuki_schemes uses the Boost.Multiprecision library (https://www.boost.org/)
+for quad precision. Boost is licensed under the Boost Software License, Version 1.0.
+
 GCC libquadmath
 ---------------
-The C++ program in Code/Trotter-Suzuki_schemes is linked against libquadmath for quad precision.
+When compiled with quad precision (CMake option USE_QUAD), the C++ program in Code/Trotter-Suzuki_schemes
+is linked against libquadmath.
 libquadmath is part of GCC (https://gcc.gnu.org/) and is licensed under the
 GNU Lesser General Public License (LGPL) version 2.1 or later.
 

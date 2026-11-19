@@ -3,20 +3,28 @@
 // Define the static member for double specialization
 template <>
 const Prefactors<double> NCoefficients<VectorXd>::prefacs = Prefactors<double>();
+#if defined(USE_COMPLEX)
 template <>
 const Prefactors<double> NCoefficients<VectorXcd>::prefacs = Prefactors<double>();
+#endif // defined(USE_COMPLEX)
 
 // Define the static member for long double specialization
 template <>
 const Prefactors<long double> NCoefficients<VectorXld>::prefacs = Prefactors<long double>();
+#if defined(USE_COMPLEX)
 template <>
 const Prefactors<long double> NCoefficients<VectorXcld>::prefacs = Prefactors<long double>();
+#endif // defined(USE_COMPLEX)
 
 // Define the static member for quad specialization
+#if defined(USE_QUAD)
 template <>
 const Prefactors<quad> NCoefficients<VectorXQ>::prefacs = Prefactors<quad>();
+#endif // defined(USE_QUAD)
+#if defined(USE_QUAD) && defined(USE_COMPLEX)
 template <>
 const Prefactors<quad> NCoefficients<VectorXcQ>::prefacs = Prefactors<quad>();
+#endif // defined(USE_QUAD) && defined(USE_COMPLEX)
 
 // Constructor for NCoefficients
 template <typename Vec>
@@ -5358,8 +5366,16 @@ void *NCoefficients<Vec>::epsilons_step(const int &epsilon_ind, int &ind)
 
 // Explicit instantiation for the template class
 template class NCoefficients<VectorXd>;
+#if defined(USE_COMPLEX)
 template class NCoefficients<VectorXcd>;
+#endif // defined(USE_COMPLEX)
 template class NCoefficients<VectorXld>;
+#if defined(USE_COMPLEX)
 template class NCoefficients<VectorXcld>;
+#endif // defined(USE_COMPLEX)
+#if defined(USE_QUAD)
 template class NCoefficients<VectorXQ>;
+#endif // defined(USE_QUAD)
+#if defined(USE_QUAD) && defined(USE_COMPLEX)
 template class NCoefficients<VectorXcQ>;
+#endif // defined(USE_QUAD) && defined(USE_COMPLEX)

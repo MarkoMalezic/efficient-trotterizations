@@ -113,11 +113,52 @@ pair<Vec, Vec> to_ramp(const int &q, Vec const &a_vec, Vec const &b_vec)
   return cd_vec;
 }
 
+// Helper to construct the ai of an S2-composition (c_j = d_j) from its bi in the symmetric basis
+// Index 0 is the middle of the scheme, the last index the outermost parameter
+// Even q: a1 = b1/2,      ai = (b_{i-1} + bi)/2, a_last = b_last/2
+// Odd q:  a1 = b1 + b2/2, ai = (bi + b_{i+1})/2, a_last = b_last/2
+template <typename Vec>
+Vec comp_to_a(const int &q, Vec const &b_vec)
+{
+  using RealT = typename Eigen::NumTraits<typename Vec::Scalar>::Real;
+  const int nb = b_vec.size();
+  Vec a_vec;
+  if (q % 2 == 0)
+  {
+    a_vec = Vec(nb + 1);
+    a_vec[0] = b_vec[0] / RealT(2.0);
+    for (int i{1}; i < nb; ++i)
+    {
+      a_vec[i] = (b_vec[i - 1] + b_vec[i]) / RealT(2.0);
+    }
+    a_vec[nb] = b_vec[nb - 1] / RealT(2.0);
+  }
+  else
+  {
+    a_vec = Vec(nb);
+    // The middle b1 is not halved, so a1 receives it in full
+    if (nb == 1)
+    {
+      a_vec[0] = b_vec[0];
+    }
+    else
+    {
+      a_vec[0] = b_vec[0] + b_vec[1] / RealT(2.0);
+      for (int i{1}; i < nb - 1; ++i)
+      {
+        a_vec[i] = (b_vec[i] + b_vec[i + 1]) / RealT(2.0);
+      }
+      a_vec[nb - 1] = b_vec[nb - 1] / RealT(2.0);
+    }
+  }
+  return a_vec;
+}
+
 // Constructor for MinResult
 template <typename Vec>
 MinResult<Vec>::MinResult(const array<int, 2> &nps)
     : hess(), err2(0.0), conv(0), iter(0),
-      a_vec(nps[1]), b_vec(nps[0]), da_vec(nps[1]), db_vec(nps[0])
+      a_vec(nps[1]), b_vec(nps[0]), da_vec(Vec::Zero(nps[1])), db_vec(Vec::Zero(nps[0]))
 {
 }
 
@@ -143,7 +184,7 @@ void MinResult<Vec>::display()
   {
     cout << string(28, '=') << endl;
     cout << "Convergence: " << conv << endl;
-    cout << "Number of iterations: " << iter + 1 << endl;
+    cout << "Number of iterations: " << iter << endl;
     cout << fixed << std::setprecision(16);
     cout << "a_vec:" << endl
          << a_vec << endl;
@@ -159,7 +200,7 @@ void MinResult<Vec>::display()
   {
     cout << string(52, '=') << endl;
     cout << "Convergence: " << conv << endl;
-    cout << "Number of iterations: " << iter + 1 << endl;
+    cout << "Number of iterations: " << iter << endl;
     cout << fixed << setprecision(16);
     cout << "a_vec:" << endl;
     for (int i{0}; i < a_vec.size(); ++i)
@@ -230,7 +271,7 @@ void MinResult<Vec>::display()
   {
     cout << string(28, '=') << endl;
     cout << "Convergence: " << conv << endl;
-    cout << "Number of iterations: " << iter + 1 << endl;
+    cout << "Number of iterations: " << iter << endl;
     cout << fixed << setprecision(20);
     cout << "a_vec:" << endl
          << a_vec << endl;
@@ -246,7 +287,7 @@ void MinResult<Vec>::display()
   {
     cout << string(52, '=') << endl;
     cout << "Convergence: " << conv << endl;
-    cout << "Number of iterations: " << iter + 1 << endl;
+    cout << "Number of iterations: " << iter << endl;
     cout << fixed << setprecision(20);
     cout << "a_vec:" << endl;
     for (int i{0}; i < a_vec.size(); ++i)
@@ -317,32 +358,80 @@ void MinResult<Vec>::display()
 
 // Explicit template instantiation for compare_min helper
 template bool compare_min<VectorXd>(const VectorXd &v1, const VectorXd &v2, const Eigen::NumTraits<typename VectorXd::Scalar>::Real &tol);
+#if defined(USE_COMPLEX)
 template bool compare_min<VectorXcd>(const VectorXcd &v1, const VectorXcd &v2, const Eigen::NumTraits<typename VectorXcd::Scalar>::Real &tol);
+#endif // defined(USE_COMPLEX)
 template bool compare_min<VectorXld>(const VectorXld &v1, const VectorXld &v2, const Eigen::NumTraits<typename VectorXld::Scalar>::Real &tol);
+#if defined(USE_COMPLEX)
 template bool compare_min<VectorXcld>(const VectorXcld &v1, const VectorXcld &v2, const Eigen::NumTraits<typename VectorXcld::Scalar>::Real &tol);
+#endif // defined(USE_COMPLEX)
+#if defined(USE_QUAD)
 template bool compare_min<VectorXQ>(const VectorXQ &v1, const VectorXQ &v2, const Eigen::NumTraits<typename VectorXQ::Scalar>::Real &tol);
+#endif // defined(USE_QUAD)
+#if defined(USE_QUAD) && defined(USE_COMPLEX)
 template bool compare_min<VectorXcQ>(const VectorXcQ &v1, const VectorXcQ &v2, const Eigen::NumTraits<typename VectorXcQ::Scalar>::Real &tol);
+#endif // defined(USE_QUAD) && defined(USE_COMPLEX)
 
 // Explicit template instantiation for to_standard helper
 template std::pair<VectorXd, VectorXd> to_standard<VectorXd>(const int&, const VectorXd&, const VectorXd&);
+#if defined(USE_COMPLEX)
 template std::pair<VectorXcd, VectorXcd> to_standard<VectorXcd>(const int&, const VectorXcd&, const VectorXcd&);
+#endif // defined(USE_COMPLEX)
 template std::pair<VectorXld, VectorXld> to_standard<VectorXld>(const int&, const VectorXld&, const VectorXld&);
+#if defined(USE_COMPLEX)
 template std::pair<VectorXcld, VectorXcld> to_standard<VectorXcld>(const int&, const VectorXcld&, const VectorXcld&);
+#endif // defined(USE_COMPLEX)
+#if defined(USE_QUAD)
 template std::pair<VectorXQ, VectorXQ> to_standard<VectorXQ>(const int&, const VectorXQ&, const VectorXQ&);
+#endif // defined(USE_QUAD)
+#if defined(USE_QUAD) && defined(USE_COMPLEX)
 template std::pair<VectorXcQ, VectorXcQ> to_standard<VectorXcQ>(const int&, const VectorXcQ&, const VectorXcQ&);
+#endif // defined(USE_QUAD) && defined(USE_COMPLEX)
 
 // Explicit template instantiation for to_ramp helper
 template std::pair<VectorXd, VectorXd> to_ramp<VectorXd>(const int&, const VectorXd&, const VectorXd&);
+#if defined(USE_COMPLEX)
 template std::pair<VectorXcd, VectorXcd> to_ramp<VectorXcd>(const int&, const VectorXcd&, const VectorXcd&);
+#endif // defined(USE_COMPLEX)
 template std::pair<VectorXld, VectorXld> to_ramp<VectorXld>(const int&, const VectorXld&, const VectorXld&);
+#if defined(USE_COMPLEX)
 template std::pair<VectorXcld, VectorXcld> to_ramp<VectorXcld>(const int&, const VectorXcld&, const VectorXcld&);
+#endif // defined(USE_COMPLEX)
+#if defined(USE_QUAD)
 template std::pair<VectorXQ, VectorXQ> to_ramp<VectorXQ>(const int&, const VectorXQ&, const VectorXQ&);
+#endif // defined(USE_QUAD)
+#if defined(USE_QUAD) && defined(USE_COMPLEX)
 template std::pair<VectorXcQ, VectorXcQ> to_ramp<VectorXcQ>(const int&, const VectorXcQ&, const VectorXcQ&);
+#endif // defined(USE_QUAD) && defined(USE_COMPLEX)
+
+// Explicit template instantiation for comp_to_a helper
+template VectorXd comp_to_a<VectorXd>(const int&, const VectorXd&);
+#if defined(USE_COMPLEX)
+template VectorXcd comp_to_a<VectorXcd>(const int&, const VectorXcd&);
+#endif // defined(USE_COMPLEX)
+template VectorXld comp_to_a<VectorXld>(const int&, const VectorXld&);
+#if defined(USE_COMPLEX)
+template VectorXcld comp_to_a<VectorXcld>(const int&, const VectorXcld&);
+#endif // defined(USE_COMPLEX)
+#if defined(USE_QUAD)
+template VectorXQ comp_to_a<VectorXQ>(const int&, const VectorXQ&);
+#endif // defined(USE_QUAD)
+#if defined(USE_QUAD) && defined(USE_COMPLEX)
+template VectorXcQ comp_to_a<VectorXcQ>(const int&, const VectorXcQ&);
+#endif // defined(USE_QUAD) && defined(USE_COMPLEX)
 
 // Explicit instantiation for the MinResult class
 template class MinResult<VectorXd>;
+#if defined(USE_COMPLEX)
 template class MinResult<VectorXcd>;
+#endif // defined(USE_COMPLEX)
 template class MinResult<VectorXld>;
+#if defined(USE_COMPLEX)
 template class MinResult<VectorXcld>;
+#endif // defined(USE_COMPLEX)
+#if defined(USE_QUAD)
 template class MinResult<VectorXQ>;
+#endif // defined(USE_QUAD)
+#if defined(USE_QUAD) && defined(USE_COMPLEX)
 template class MinResult<VectorXcQ>;
+#endif // defined(USE_QUAD) && defined(USE_COMPLEX)

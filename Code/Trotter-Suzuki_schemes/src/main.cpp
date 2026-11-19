@@ -1,7 +1,8 @@
 #include <chrono>
 #include "IO.h"
 
-int main(int argc, char *argv[])
+// Runs the routine given by the input file (see main below for the error handling)
+static int run(int argc, char *argv[])
 {
   // Check if input file is provided
   if (argc < 2)
@@ -13,6 +14,24 @@ int main(int argc, char *argv[])
   auto start = chrono::high_resolution_clock::now();
 
   IO input(argv[1]);
+
+  // Precisions that exist but were not compiled into this build (see CMake options USE_QUAD, USE_COMPLEX)
+#if !defined(USE_COMPLEX)
+  if (input.scalar_type.rfind("complex_", 0) == 0)
+  {
+    cerr << "Scalar type '" << input.scalar_type << "' is not available in this build: "
+         << "reconfigure with  cmake -DUSE_COMPLEX=ON .." << endl;
+    return 1;
+  }
+#endif
+#if !defined(USE_QUAD)
+  if (input.scalar_type == "quad" || input.scalar_type == "complex_quad")
+  {
+    cerr << "Scalar type '" << input.scalar_type << "' is not available in this build: "
+         << "reconfigure with  cmake -DUSE_QUAD=ON .." << endl;
+    return 1;
+  }
+#endif
 
   if (input.scalar_type == "double")
   {
@@ -30,7 +49,7 @@ int main(int argc, char *argv[])
       }
       else
       {
-        runtime_error("Invalid mode!");
+        throw runtime_error("Invalid mode!");
       }
       break;
     }
@@ -46,16 +65,17 @@ int main(int argc, char *argv[])
       }
       else
       {
-        runtime_error("Invalid mode!");
+        throw runtime_error("Invalid mode!");
       }
       break;
     }
     default:
     {
-      runtime_error("Invalid routine!");
+      throw runtime_error("Invalid routine!");
     }
     }
   }
+#if defined(USE_COMPLEX)
   else if (input.scalar_type == "complex_double")
   {
     switch (input.routine)
@@ -72,7 +92,7 @@ int main(int argc, char *argv[])
       }
       else
       {
-        runtime_error("Invalid mode!");
+        throw runtime_error("Invalid mode!");
       }
       break;
     }
@@ -88,16 +108,17 @@ int main(int argc, char *argv[])
       }
       else
       {
-        runtime_error("Invalid mode!");
+        throw runtime_error("Invalid mode!");
       }
       break;
     }
     default:
     {
-      runtime_error("Invalid routine!");
+      throw runtime_error("Invalid routine!");
     }
     }
   }
+#endif // defined(USE_COMPLEX)
   else if (input.scalar_type == "long_double")
   {
     switch (input.routine)
@@ -114,7 +135,7 @@ int main(int argc, char *argv[])
       }
       else
       {
-        runtime_error("Invalid mode!");
+        throw runtime_error("Invalid mode!");
       }
       break;
     }
@@ -130,16 +151,17 @@ int main(int argc, char *argv[])
       }
       else
       {
-        runtime_error("Invalid mode!");
+        throw runtime_error("Invalid mode!");
       }
       break;
     }
     default:
     {
-      runtime_error("Invalid routine!");
+      throw runtime_error("Invalid routine!");
     }
     }
   }
+#if defined(USE_COMPLEX)
   else if (input.scalar_type == "complex_long_double")
   {
     switch (input.routine)
@@ -156,7 +178,7 @@ int main(int argc, char *argv[])
       }
       else
       {
-        runtime_error("Invalid mode!");
+        throw runtime_error("Invalid mode!");
       }
       break;
     }
@@ -172,16 +194,18 @@ int main(int argc, char *argv[])
       }
       else
       {
-        runtime_error("Invalid mode!");
+        throw runtime_error("Invalid mode!");
       }
       break;
     }
     default:
     {
-      runtime_error("Invalid routine!");
+      throw runtime_error("Invalid routine!");
     }
     }
   }
+#endif // defined(USE_COMPLEX)
+#if defined(USE_QUAD)
   else if (input.scalar_type == "quad")
   {
     switch (input.routine)
@@ -198,7 +222,7 @@ int main(int argc, char *argv[])
       }
       else
       {
-        runtime_error("Invalid mode!");
+        throw runtime_error("Invalid mode!");
       }
       break;
     }
@@ -214,16 +238,18 @@ int main(int argc, char *argv[])
       }
       else
       {
-        runtime_error("Invalid mode!");
+        throw runtime_error("Invalid mode!");
       }
       break;
     }
     default:
     {
-      runtime_error("Invalid routine!");
+      throw runtime_error("Invalid routine!");
     }
     }
   }
+#endif // defined(USE_QUAD)
+#if defined(USE_QUAD) && defined(USE_COMPLEX)
   else if (input.scalar_type == "complex_quad")
   {
     switch (input.routine)
@@ -240,7 +266,7 @@ int main(int argc, char *argv[])
       }
       else
       {
-        runtime_error("Invalid mode!");
+        throw runtime_error("Invalid mode!");
       }
       break;
     }
@@ -256,19 +282,20 @@ int main(int argc, char *argv[])
       }
       else
       {
-        runtime_error("Invalid mode!");
+        throw runtime_error("Invalid mode!");
       }
       break;
     }
     default:
     {
-      runtime_error("Invalid routine!");
+      throw runtime_error("Invalid routine!");
     }
     }
   }
+#endif // defined(USE_QUAD) && defined(USE_COMPLEX)
   else
   {
-    runtime_error("Invalid scalar type!");
+    throw runtime_error("Invalid scalar type!");
   }
 
   auto end = chrono::high_resolution_clock::now();
@@ -276,4 +303,18 @@ int main(int argc, char *argv[])
   cout << "Time taken: " << fixed << setprecision(6) << duration.count() << " seconds" << std::endl;
 
   return 0;
+}
+
+int main(int argc, char *argv[])
+{
+  // Print errors (e.g. an invalid input file) as a message instead of terminating with an uncaught exception
+  try
+  {
+    return run(argc, argv);
+  }
+  catch (const exception &e)
+  {
+    cerr << "Error: " << e.what() << endl;
+    return 1;
+  }
 }

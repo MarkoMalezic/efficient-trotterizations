@@ -72,6 +72,9 @@ template <typename Vec>
 using MatrixForVector_t = typename MatrixForVector<Vec>::type;
 
 // Type trait to deduce the hessian matrix type for a given vector type
+// For complex vectors the (Gauss-Newton) Hessian J^H W J is Hermitian and complex: the residuals
+// are holomorphic in the parameters, so the normal equations are (J^H W J) h = -J^H W y with the
+// full complex matrix.
 template <typename Vec>
 struct HessMatrixForVector;
 
@@ -84,7 +87,7 @@ struct HessMatrixForVector<VectorXd>
 template <>
 struct HessMatrixForVector<VectorXcd>
 {
-  using type = MatrixXd;
+  using type = MatrixXcd;
 };
 
 template <>
@@ -96,7 +99,7 @@ struct HessMatrixForVector<VectorXld>
 template <>
 struct HessMatrixForVector<VectorXcld>
 {
-  using type = MatrixXld;
+  using type = MatrixXcld;
 };
 
 template <>
@@ -108,12 +111,11 @@ struct HessMatrixForVector<VectorXQ>
 template <>
 struct HessMatrixForVector<VectorXcQ>
 {
-  using type = MatrixXQ;
+  using type = MatrixXcQ;
 };
 
 template <typename Vec>
 using HessMatrixForVector_t = typename HessMatrixForVector<Vec>::type;
-
 
 // Helper function to compute the Jt * W
 template <typename Mat, typename RealT>
@@ -158,8 +160,8 @@ HessMatrixForVector_t<Vec> compute_hess(const Mat &J, const Mat &JtW)
     std::is_same_v<Mat, MatrixXcQ>
   )
   {
-    // Compute the Hermitian product and take the real part
-    return (JtW * J).real();
+    // Compute the Hermitian product J^H W J (the full complex matrix, see HessMatrixForVector)
+    return JtW * J;
   }
 }
 
@@ -167,7 +169,8 @@ HessMatrixForVector_t<Vec> compute_hess(const Mat &J, const Mat &JtW)
 template <typename Vec, typename RealT>
 auto compute_chi2(const Vec &y, const DiagonalMatrix<RealT, Dynamic> &W)
 {
-  using ReturnType = conditional_t<is_same_v<Vec, VectorXd> || is_same_v<Vec, VectorXcd>, double, long double>;
+  // Return in the working precision (quad types previously got truncated to long double)
+  using ReturnType = typename Eigen::NumTraits<typename Vec::Scalar>::Real;
 
   if constexpr (
     std::is_same_v<Vec, VectorXd> ||
@@ -193,7 +196,7 @@ auto compute_chi2(const Vec &y, const DiagonalMatrix<RealT, Dynamic> &W)
 template <typename Vec>
 auto abs_dot_prod(const Vec &v1, const Vec &v2)
 {
-  using ReturnType = conditional_t<is_same_v<Vec, VectorXd> || is_same_v<Vec, VectorXcd>, double, long double>;
+  using ReturnType = typename Eigen::NumTraits<typename Vec::Scalar>::Real;
 
   if constexpr (
     std::is_same_v<Vec, VectorXd> ||
@@ -230,6 +233,10 @@ array<Vec, 2> sample(const Scalar &mu, const Scalar &sigma, const array<int, 2> 
   // Declare the normal distributions
   normal_distribution<long double> dist_real;
   normal_distribution<long double> dist_imag;
+  // Imaginary part: only sampled if sigma has a positive imaginary part (normal_distribution requires
+  // stddev > 0), otherwise it is fixed to mu.imag()
+  [[maybe_unused]] long double mu_imag{0.0L};
+  [[maybe_unused]] bool sample_imag{false};
   // If the Scalar is double or long double initialize only the real part,
   if constexpr (is_same_v<Scalar, double> || is_same_v<Scalar, long double>)
   {
@@ -248,14 +255,24 @@ array<Vec, 2> sample(const Scalar &mu, const Scalar &sigma, const array<int, 2> 
     complex<long double> mu_ld(static_cast<long double>(mu.real()), static_cast<long double>(mu.imag()));
     complex<long double> sigma_ld(static_cast<long double>(sigma.real()), static_cast<long double>(sigma.imag()));
     dist_real = normal_distribution<long double>(mu_ld.real(), sigma_ld.real());
-    dist_imag = normal_distribution<long double>(mu_ld.imag(), sigma_ld.imag());
+    mu_imag = mu_ld.imag();
+    sample_imag = sigma_ld.imag() > 0;
+    if (sample_imag)
+    {
+      dist_imag = normal_distribution<long double>(mu_ld.imag(), sigma_ld.imag());
+    }
   }
   else if constexpr (is_same_v<Scalar, complex<quad>>)
   {
     complex<long double> mu_ld(mu.real().template convert_to<long double>(), mu.imag().template convert_to<long double>());
     complex<long double> sigma_ld(sigma.real().template convert_to<long double>(), sigma.imag().template convert_to<long double>());
     dist_real = normal_distribution<long double>(mu_ld.real(), sigma_ld.real());
-    dist_imag = normal_distribution<long double>(mu_ld.imag(), sigma_ld.imag());
+    mu_imag = mu_ld.imag();
+    sample_imag = sigma_ld.imag() > 0;
+    if (sample_imag)
+    {
+      dist_imag = normal_distribution<long double>(mu_ld.imag(), sigma_ld.imag());
+    }
   }
   // Declare the initial conditions
   Vec a_vec(nps[1]);
@@ -280,7 +297,7 @@ array<Vec, 2> sample(const Scalar &mu, const Scalar &sigma, const array<int, 2> 
     )
     {
       long double real_part = dist_real(gen);
-      long double imag_part = dist_imag(gen);
+      long double imag_part = sample_imag ? dist_imag(gen) : mu_imag;
       a_vec(i) = complex<RealT>(real_part, imag_part);
     }
   }
@@ -306,7 +323,7 @@ array<Vec, 2> sample(const Scalar &mu, const Scalar &sigma, const array<int, 2> 
     )
     {
       long double real_part = dist_real(gen);
-      long double imag_part = dist_imag(gen);
+      long double imag_part = sample_imag ? dist_imag(gen) : mu_imag;
       b_vec(i) = complex<RealT>(real_part, imag_part);
     }
   }
@@ -329,6 +346,9 @@ pair<Vec, Vec> to_standard(const int &q, const Vec &a_vec, const Vec &b_vec);
 template <typename Vec>
 pair<Vec, Vec> to_ramp(const int &q, const Vec &a_vec, const Vec &b_vec);
 
+// Helper to construct the ai of an S2-composition from its bi (symmetric basis)
+template <typename Vec>
+Vec comp_to_a(const int &q, const Vec &b_vec);
 
 // Class which stores the minimization results
 template <typename Vec>

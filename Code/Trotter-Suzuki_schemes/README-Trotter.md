@@ -3,9 +3,24 @@
 The code implements the recursive formulae for high order Trotterizations, which allows the evaluation of their efficiency, if the scheme parameters are known.
 If the parameters aren't known, the implementation includes a minimizer, that optimizes the theoretical error and provides efficient Trotter-Suzuki schemes.
 In its current state the program supports schemes up to order 8.
-The code is written in C++, with a dependency on the Eigen linear algebra library and on GCC's `libquadmath` for quad precision (the program therefore has to be compiled with GCC).
+The code is written in C++17, with a dependency on the Eigen linear algebra library and on the (header-only) Boost.Multiprecision library.
 The building is done by CMake (see `CMakeLists.txt`) and the instructions for this can be found inside `build-run_instructions.txt`.
 The class structure can be seen in the schematic below.
+
+## Compilation options
+
+The program is compiled for real double and long double parameters by default.
+Quad precision and complex parameters are optional, since they make up most of the compilation time, and can be switched on with CMake options:
+
+| CMake option | Adds the scalar types | Requirements |
+|---|---|---|
+| (none) | `double`, `long_double` | Eigen, Boost.Multiprecision |
+| `-DUSE_QUAD=ON` | `quad` | GCC and `libquadmath` (quad literals are `__float128`) |
+| `-DUSE_COMPLEX=ON` | `complex_double`, `complex_long_double` | |
+| `-DUSE_QUAD=ON -DUSE_COMPLEX=ON` | additionally `complex_quad` | GCC and `libquadmath` |
+
+For example, `cmake -DCMAKE_BUILD_TYPE=Release -DUSE_QUAD=ON ..`.
+Running an input file with a scalar type that was not compiled stops the program with a message naming the missing option.
 
 ## Dependency graph
 
@@ -27,7 +42,10 @@ One simply needs to give the program an input file with the correct parameters (
 More details are described below, but the general parameters needed are:
 - routine: 0 - Scheme minimization, 1 - Scheme evaluation 
 - mode: 0 - Numeric, 1 - Symbolic
-- scalar_type: double, long_double, quad, complex_double, complex_long_double and complex_quad. From this scalar_precision = double, long_double or quad (`__float128`, ~ 34 significant digits)
+- scalar_type: double, long_double, quad, complex_double, complex_long_double and complex_quad (see [Compilation options](#compilation-options)). From this scalar_precision = double, long_double or quad (Boost.Multiprecision `cpp_bin_float_quad`, ~ 34 significant digits)
+
+The parameters of the routine are given in the same file, in any order (the line `# Specific parameters` in the examples is only a comment that separates them).
+Lines starting with `#` are comments, and errors in the input (e.g. missing weights or an invalid routine) stop the program with a message.
 
 Note: Symbolic Minimization (routine: 0, mode: 1) is no longer supported. Scheme minimization is only available numerically; symbolic mode remains available for Scheme evaluation (routine: 1, mode: 1).
 
@@ -52,6 +70,7 @@ The shared parameters between schemes are:
 - order (2, 4, 6, 8): Order of the scheme
 - no_cycles (1, 2, 3, ...): Number of cycles
 - method (string): Subroutine name
+- comp (0, 1): Composition mode (default 0). If 1, the search is restricted to S2-compositions (c_j = d_j in the ramp notation), which fixes part of the parameters through the composition relations and leaves (number of b parameters - 1) free parameters. Requires no_cycles >= 3 and is not available for the `_origin` subroutines.
 
 #### Subroutine: minimize
 

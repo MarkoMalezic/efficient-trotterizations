@@ -736,7 +736,11 @@ template class Tensor<long double>;
 
 // Explicit instantiation for the evaluate method
 template double Tensor<double>::evaluate<VectorXd>(const VectorXd &, const VectorXd &) const;
+#if defined(USE_COMPLEX)
 template complex<double> Tensor<double>::evaluate<VectorXcd>(const VectorXcd &, const VectorXcd &) const;
+#endif // defined(USE_COMPLEX)
 
 template long double Tensor<long double>::evaluate<VectorXld>(const VectorXld &, const VectorXld &) const;
+#if defined(USE_COMPLEX)
 template complex<long double> Tensor<long double>::evaluate<VectorXcld>(const VectorXcld &, const VectorXcld &) const;
+#endif // defined(USE_COMPLEX)

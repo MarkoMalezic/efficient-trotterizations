@@ -610,9 +610,12 @@ pair<array<vector<Vec>, 4>, vector<int>> Minimization<Vec>::find(const int &N, R
     else
     {
       // Change to include more steps if needed
+      // (restore the weights and convergence criteria, min_twostep overwrites eps with eps2)
       DiagonalMatrix<RealT, Dynamic> W_copy{W};
+      array<RealT, 4> eps_copy{eps};
       mini = min_twostep(lambda, eps2, false, freeze);
       W = W_copy;
+      eps = eps_copy;
     }
 
     if (verbose)
@@ -722,6 +725,10 @@ pair<array<vector<Vec>, 4>, vector<int>> Minimization<Vec>::find(const int &N, R
 
 // Explicit instantiation for the Minimization class
 template class Minimization<VectorXd>;
+#if defined(USE_COMPLEX)
 template class Minimization<VectorXcd>;
+#endif // defined(USE_COMPLEX)
 template class Minimization<VectorXld>;
+#if defined(USE_COMPLEX)
 template class Minimization<VectorXcld>;
+#endif // defined(USE_COMPLEX)
