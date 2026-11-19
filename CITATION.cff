@@ -12,10 +12,6 @@ authors:
     family-names: Maležič
     orcid: "https://orcid.org/0009-0005-5863-9223"
     affiliation: "University of Bonn, Helmholtz Institute for Radiation and Nuclear Physics"
-  - given-names: Johann
-    family-names: Ostmeyer
-    orcid: "https://orcid.org/0000-0001-7641-8030"
-    affiliation: "University of Bonn, Helmholtz Institute for Radiation and Nuclear Physics"
 repository-code: "https://github.com/MarkoMalezic/efficient-trotterizations"
 license: MIT
 keywords:
