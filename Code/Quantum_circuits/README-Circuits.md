@@ -1,7 +1,7 @@
 # Noisy quantum circuits
 
 This folder contains the scripts used to compare Trotter-Suzuki schemes as quantum circuits under gate noise, as presented in "Optimised 8th-order Trotter-Suzuki schemes for Quantum simulation".
-The circuits are synthesized with our Qiskit plugin [qiskit-omelyan](https://github.com/MarkoMalezic/qiskit-omelyan) ([10.5281/zenodo.24371684](https://doi.org/10.5281/zenodo.24371684)), based on the algorithm described in our Lattice 2025 proceedings ([arXiv:2602.21145](https://arxiv.org/abs/2602.21145)). It implements arbitrary symmetric Trotter-Suzuki schemes (in the ramp notation with parameters c, see `README-Schemes.md`) as well as a collection of schemes from the literature and from our papers.
+The circuits are synthesised with our Qiskit plugin [qiskit-omelyan](https://github.com/MarkoMalezic/qiskit-omelyan) ([10.5281/zenodo.24371684](https://doi.org/10.5281/zenodo.24371684)), based on the algorithm described in our Lattice 2025 proceedings ([arXiv:2602.21145](https://arxiv.org/abs/2602.21145)). It implements arbitrary symmetric Trotter-Suzuki schemes (in the ramp notation with parameters c, see `README-Schemes.md`) as well as a collection of schemes from the literature and from our papers.
 The circuits are simulated with Qiskit Aer, both without and with noise.
 
 ## Requirements
@@ -29,8 +29,8 @@ The script has no command-line arguments. The model, the scheme and the noise st
   with $J_x = J_z = 1$, $J_y = 0$, a fixed set of random local fields $h_i$ and open boundary conditions, evolved to time `t = 10`.
   The exact propagator $U(t) = e^{-iHt}$ is obtained by exponentiating the Hamiltonian matrix.
 - **Scheme**: `scheme, q = malezic_ostmeyer8_q21, 21` selects the options passed to the plugin and the number of cycles q.
-  The options are dictionaries with either the `name` of a built-in scheme of qiskit-omelyan, or `order`, `cycles` and `c_vec` for a custom scheme (see `n4_q6_recommended` etc.), together with the number of Trotter steps `reps` and the circuit optimizations `merge_single` and `merge_steps`.
-- **Noise**: a depolarizing channel after every gate, with probability `noise[0]` for single-qubit gates (`rz`) and `noise[1]` for two-qubit gates (`rxx`, `ryy`, `rzz`). The default is `noise = (1e-5, 1e-4)`.
+  The options are dictionaries with either the `name` of a built-in scheme of qiskit-omelyan, or `order`, `cycles` and `c_vec` for a custom scheme (see `n4_q6_recommended` etc.), together with the number of Trotter steps `reps` and the circuit optimisations `merge_single` and `merge_steps`.
+- **Noise**: a depolarising channel after every gate, with probability `noise[0]` for single-qubit gates (`rz`) and `noise[1]` for two-qubit gates (`rxx`, `ryy`, `rzz`). The default is `noise = (1e-5, 1e-4)`.
 
 For every number of Trotter steps $N_t$ listed in `Nts/time_{t}/Nts_q{q}.dat`, the script evolves all $2^{n_q}$ computational basis states and saves the results to `Data/time_{t}/<scheme name>/`:
 
@@ -38,7 +38,7 @@ For every number of Trotter steps $N_t$ listed in `Nts/time_{t}/Nts_q{q}.dat`, t
 |---|---|
 | `fidelities_Nt-{Nt}.npy` | Array of shape $(2^{n_q}, 3)$ with the fidelities per initial state: Trotter vs. exact ($F_t$), noisy vs. exact ($F_n$), noisy vs. Trotter ($F_{nt}$) |
 | `error2s_Nt-{Nt}.npy` | Array of shape $(2^{n_q}, 1)$ with the squared Trotter error $\lVert \psi_\text{exact} - \psi_\text{Trotter} \rVert^2$ per initial state |
-| `gates_Nt-{Nt}.txt` | Depth, size and gate counts of the synthesized circuit |
+| `gates_Nt-{Nt}.txt` | Depth, size and gate counts of the synthesised circuit |
 
 The noisy simulation uses density matrices, so the cost grows quickly with the number of qubits.
 The simulation data is not included in the repository, but it will be gladly provided upon request.

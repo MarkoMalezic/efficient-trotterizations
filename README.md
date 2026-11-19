@@ -24,30 +24,30 @@ The main part of the derivations for Trotterizations are the recursive formulae 
 In the same folder we gather the results of the recursive formulae in a slightly more readable form `Recursive_formulae.pdf`.
 For those without access to Mathematica, the same derivation (up to order $n = 8$) is available as an open-source Python package `pybch` in the same folder, see `README-pybch.md`.
 
-Applying the formulae it is possible to construct polynomial manifolds, which are to be minimized in order to find efficient schemes.
-Computation of such manifolds for 2nd and 4th order and their visualizations can be found in [Manifolds](Code/Manifolds) directory, both as Mathematica notebooks and as standalone PDF images.
+Applying the formulae it is possible to construct polynomial manifolds, which are to be minimised in order to find efficient schemes.
+Computation of such manifolds for 2nd and 4th order and their visualisations can be found in [Manifolds](Code/Manifolds) directory, both as Mathematica notebooks and as standalone PDF images.
 Furthermore, properties of the Jacobian on the manifolds at orders $n = 6, 8$ give insight into the structure of the over-constrained regions, see the notebook `Jacobian_on_manifold.nb` in the same directory.
 
 ## Implementation
 
-Polynomial manifolds constructed from the recursive formulae need to be minimized in order to find efficient Trotterizations.
+Polynomial manifolds constructed from the recursive formulae need to be minimised in order to find efficient Trotterizations.
 The code for this is written in C++ (see folder [Trotter-Suzuki_schemes](Code/Trotter-Suzuki_schemes)), which can be built using CMake (look for `build-run_instructions.txt`).
 The main dependency is on a linear algebra library called Eigen (found at https://eigen.tuxfamily.org/), while other modules can be found within the standard C++ library.
 It also needs the header-only Boost.Multiprecision library.
 By default only real double and long double parameters are compiled; quad precision and complex parameters are switched on with the CMake options `USE_QUAD` and `USE_COMPLEX`, where quad precision additionally requires GCC and `libquadmath`.
 
 There are multiple routines, which are first split between the symbolic and numeric implementation of the formulae.
-Furthermore, the routines split between scheme evaluation at specific parameters and their minimization.
-The minimizer is a Levenberg-Marquardt algorithm, optionally with geodesic acceleration and restricted to compositions of second-order schemes, and it supports schemes up to order $n = 8$ in double, long double and quad precision.
+Furthermore, the routines split between scheme evaluation at specific parameters and their minimisation.
+The minimiser is a Levenberg-Marquardt algorithm, optionally with geodesic acceleration and restricted to compositions of second-order schemes, and it supports schemes up to order $n = 8$ in double, long double and quad precision.
 The program can be run by `/path_to_build/main input_file.in`, where the `input_file.in` specifies the routine and its parameters.
 More details on specific subroutines and their usage can be found in `README-Trotter.md` within [Trotter-Suzuki_schemes](Code/Trotter-Suzuki_schemes).
 
-In our minimization efforts we were able to find many Trotter-Suzuki schemes, that are gathered inside [Schemes](/Code/Trotter-Suzuki_schemes/Schemes) in a few formats/notations, which are explained in `README-Schemes.md`.
+In our minimisation efforts we were able to find many Trotter-Suzuki schemes, that are gathered inside [Schemes](/Code/Trotter-Suzuki_schemes/Schemes) in a few formats/notations, which are explained in `README-Schemes.md`.
 Besides the archive of all schemes found, we also provide a selection of recommended schemes at each number of cycles, chosen for their theoretical efficiency and uniformity.
 
 ## Application
 
-The schemes found by the minimizer in the implementation can then be used for time evolution of physical models.
+The schemes found by the minimiser in the implementation can then be used for time evolution of physical models.
 Inside [Time_Evolution](Code/Time_Evolution) we model two distinct classes of quantum mechanical systems.
 
 Within `Symplectic_evolution.py` one finds a Python implementation for time evolution of symplectic models.
@@ -58,7 +58,7 @@ More details inside `README-Symplectic.md`.
 
 A more complicated implementation of time evolution for the Heisenberg model and its derivatives can also be found in this directory. 
 The code for this is again written in C++ with a dependency on Eigen and the building/running works similarly to before (look for `build-run_instructions.txt`).
-The time evolution can be evaluated by using exact diagonalization or Trotterizations, which is again useful for comparison and evaluation of the Trotter error.
+The time evolution can be evaluated by using exact diagonalisation or Trotterizations, which is again useful for comparison and evaluation of the Trotter error.
 There also exist a few routines, and which ones are run can be specified in the input file.
 Further details can be found in `README-Heisenberg.md`.
 
