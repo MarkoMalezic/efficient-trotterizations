@@ -2,9 +2,17 @@
 
 A derivation, implementation and application of Trotter-Suzuki decomposition schemes at high orders.
 
-This repository contains the code required to reproduce the results presented in "Efficient Trotter-Suzuki Schemes for Long-time Quantum Dynamics".
-It also stores novel schemes at order $n = 2, 4, 6, 8$ in different formats.
-Data for time evolution is not included in the repository, but it will be gladly provided upon request.
+This repository contains the code required to reproduce the results presented in our papers:
+
+- M. Maležič and J. Ostmeyer, "Efficient Trotter-Suzuki Schemes for Long-time Quantum Dynamics", J. Phys. A, [10.1088/1751-8121/ae919f](https://doi.org/10.1088/1751-8121/ae919f) ([arXiv:2601.18756](https://arxiv.org/abs/2601.18756))
+- M. Maležič and J. Ostmeyer, "Optimised 8th-order Trotter-Suzuki schemes for Quantum simulation" (arXiv link to follow)
+
+The algorithm used to implement such Omelyan-type schemes as quantum circuits (see [Quantum circuits](#quantum-circuits)) is described in our proceedings:
+
+- M. Maležič and J. Ostmeyer, "Reducing the Gate Count with Efficient Trotter-Suzuki Schemes", Proceedings of the 42nd International Symposium on Lattice Field Theory (Lattice 2025) ([arXiv:2602.21145](https://arxiv.org/abs/2602.21145))
+
+It also stores novel schemes at order $n = 2, 4, 6, 8$ in different formats, and a selection of recommended schemes.
+Data for time evolution and the quantum circuit simulations is not included in the repository, but it will be gladly provided upon request.
 
 For questions concerning the code contact: malezic@hiskp.uni-bonn.de
 
@@ -16,20 +24,23 @@ For those without access to Mathematica, the same derivation (up to order $n = 8
 
 Applying the formulae it is possible to construct polynomial manifolds, which are to be minimized in order to find efficient schemes.
 Computation of such manifolds for 2nd and 4th order and their visualizations can be found in [Manifolds](Code/Manifolds) directory, both as Mathematica notebooks and as standalone PDF images.
-Furthermore, properties of the Jacobian on the manifolds at orders $n = 6, 8$ give insight into the structure of the over-constrained regions.
+Furthermore, properties of the Jacobian on the manifolds at orders $n = 6, 8$ give insight into the structure of the over-constrained regions, see the notebook `Jacobian_on_manifold.nb` in the same directory.
 
 ## Implementation
 
 Polynomial manifolds constructed from the recursive formulae need to be minimized in order to find efficient Trotterizations.
 The code for this is written in C++ (see folder [Trotter-Suzuki_schemes](Code/Trotter-Suzuki_schemes)), which can be built using CMake (look for `build-run_instructions.txt`).
 The main dependency is on a linear algebra library called Eigen (found at https://eigen.tuxfamily.org/), while other modules can be found within the standard C++ library.
+For quad precision the program is also linked against GCC's `libquadmath`, so it has to be built with GCC.
 
 There are multiple routines, which are first split between the symbolic and numeric implementation of the formulae.
 Furthermore, the routines split between scheme evaluation at specific parameters and their minimization.
+The minimizer is a Levenberg-Marquardt algorithm, optionally with geodesic acceleration, and it supports schemes up to order $n = 8$ in double, long double and quad precision.
 The program can be run by `/path_to_build/main input_file.in`, where the `input_file.in` specifies the routine and its parameters.
 More details on specific subroutines and their usage can be found in `README-Trotter.md` within [Trotter-Suzuki_schemes](Code/Trotter-Suzuki_schemes).
 
-In our minimization efforts we were able to find many Trotter-Suzuki schemes, that are gathered inside [Schemes](/Code/Trotter-Suzuki_schemes/Schemes) in a few formats/notations, which are explained in `README-Schemes.md`
+In our minimization efforts we were able to find many Trotter-Suzuki schemes, that are gathered inside [Schemes](/Code/Trotter-Suzuki_schemes/Schemes) in a few formats/notations, which are explained in `README-Schemes.md`.
+Besides the archive of all schemes found, we also provide a selection of recommended schemes at each number of cycles, chosen for their theoretical efficiency and uniformity.
 
 ## Application
 
@@ -47,6 +58,13 @@ The code for this is again written in C++ with a dependency on Eigen and the bui
 The time evolution can be evaluated by using exact diagonalization or Trotterizations, which is again useful for comparison and evaluation of the Trotter error.
 There also exist a few routines, and which ones are run can be specified in the input file.
 Further details can be found in `README-Heisenberg.md`.
+
+### Quantum circuits
+
+Inside [Quantum_circuits](Code/Quantum_circuits) we implement the schemes as quantum circuits for the Heisenberg model and simulate them with and without gate noise.
+The circuits are built with our Qiskit plugin [qiskit-omelyan](https://github.com/MarkoMalezic/qiskit-omelyan), which implements the algorithm described in [arXiv:2602.21145](https://arxiv.org/abs/2602.21145), and simulated with Qiskit Aer.
+To run this code one needs to run: `python noisy_circuits.py`, where the model, scheme and noise are set inside the script.
+More details inside `README-Circuits.md`.
 
 ### Error evolution animation
 

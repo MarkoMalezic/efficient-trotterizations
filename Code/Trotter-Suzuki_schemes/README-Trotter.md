@@ -1,9 +1,9 @@
-# Trotter-Suzuki decompostion schemes implementation
+# Trotter-Suzuki decomposition schemes implementation
 
 The code implements the recursive formulae for high order Trotterizations, which allows the evaluation of their efficiency, if the scheme parameters are known.
 If the parameters aren't known, the implementation includes a minimizer, that optimizes the theoretical error and provides efficient Trotter-Suzuki schemes.
 In its current state the program supports schemes up to order 8.
-The code is written in C++, with a dependency on the Eigen linear algebra library.
+The code is written in C++, with a dependency on the Eigen linear algebra library and on GCC's `libquadmath` for quad precision (the program therefore has to be compiled with GCC).
 The building is done by CMake (see `CMakeLists.txt`) and the instructions for this can be found inside `build-run_instructions.txt`.
 The class structure can be seen in the schematic below.
 
@@ -23,11 +23,11 @@ The symbolic part is useful for final accurate results and obtaining the exact p
 Unfortunately, the memory resources in this implementation scale exponentially, and its usefulness at higher orders is unlikely.
 
 The program also includes an Input/Output component, which makes its usage simple.
-One simply needs to give the program an input file with the correct parameters (`/path_to_build/main input_file.in`), and plenty of examples can be found in [Input_files](/Input_files).
+One simply needs to give the program an input file with the correct parameters (`/path_to_build/main input_file.in`), and plenty of examples can be found in [Input_files](Input_files).
 More details are described below, but the general parameters needed are:
 - routine: 0 - Scheme minimization, 1 - Scheme evaluation 
 - mode: 0 - Numeric, 1 - Symbolic
-- scalar_type: double, long_double, complex_double and complex_long_double. From this scalar_precision = double or long_double
+- scalar_type: double, long_double, quad, complex_double, complex_long_double and complex_quad. From this scalar_precision = double, long_double or quad (`__float128`, ~ 34 significant digits)
 
 Note: Symbolic Minimization (routine: 0, mode: 1) is no longer supported. Scheme minimization is only available numerically; symbolic mode remains available for Scheme evaluation (routine: 1, mode: 1).
 
@@ -130,6 +130,7 @@ Additional hyperparameters:
 - sigma (scalar_precision): The standard deviation, which samples the initial conditions
 - tol (scalar_precision): Comparison tolerance between similar converged schemes
 - freeze (0, 1): Boolean to either freeze (1) the Hessian or not(0)
+- bsort (0, 1): Boolean to sort the found minima by their theoretical error (err2) from low to high (1) or not (0, default)
 
 #### Subroutine: find_geodesic
 

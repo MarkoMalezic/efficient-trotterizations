@@ -2,3 +2,4 @@ Code/Trotter-Suzuki_schemes/build/
 Code/Time_Evolution/build/
 *.json
 __pycache__/
+!.zenodo.json

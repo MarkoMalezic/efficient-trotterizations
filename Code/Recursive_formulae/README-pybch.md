@@ -3,7 +3,7 @@
 `pybch` is an open-source Python port of the derivation in `Efficient_Trotterizations.nb`, so you can reproduce the recursive formulae without Mathematica.
 It covers schemes up to order $n = 8$ and gives exactly the same results as the notebook and as `NCoefficients.cpp` / `Prefactors.cpp` in [Trotter-Suzuki_schemes](../Trotter-Suzuki_schemes).
 
-The only dependency is [SymPy](https://www.sympy.org) (`pip install sympy`), which is used only to format the results.
+It requires Python 3 (tested with 3.11), and the only dependency is [SymPy](https://www.sympy.org) (`pip install sympy`), which is used only to format the results.
 All other arithmetic is done with exact rational numbers from Python's standard library.
 
 ## Usage
@@ -13,6 +13,7 @@ Run these from this directory (`Code/Recursive_formulae`):
 ```bash
 python -m pybch.prefactors                       # BCH prefactors of all orders (alpha, beta, gamma_k, delta_k, epsilon_k)
 python -m pybch.prefactors --order 6             # only order 6
+python -m pybch.prefactors --scheme full         # prefactors of log(e^A e^B e^A) instead of log(e^{A/2} e^B e^{A/2})
 python -m pybch.prefactors --write               # also write pybch/data/prefactors_half.{json,m}
 
 python -m pybch.recursion --order 4              # recursive formulae up to order 4 for an A step
