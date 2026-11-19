@@ -1,4 +1,4 @@
-# Trotter-Suzuki decompostion schemes data
+# Trotter-Suzuki decomposition schemes data
 
 In this directory, we collect the scheme data from our minimization attempts, gathered inside `Trotter-Suzuki/`.
 The schemes are first structured by their order and then the number of cycles they require.
@@ -19,6 +19,16 @@ We also transform these into the general notation with the c and d scheme parame
 From these we calculate the distance from the origin (uniformity), and also save these values.
 
 Finally, we collect all of these arrays in an HDF5 format in case they need to be read differently. However, loss of precision is possible due to HDF5 not supporting long_double/float128 in all formats.
+
+All of these files are generated from `schemes_q#.out` by the script `transform_schemes.py` in this directory (requires `numpy`, and `h5py` for the HDF5 output):
+
+```bash
+python transform_schemes.py path/to/schemes_q#.out                    # long double, saved next to the input file
+python transform_schemes.py path/to/schemes_q#.out --precision double --out-dir path/to/dir/
+python transform_schemes.py --all                                     # regenerate all folders in Trotter-Suzuki/
+```
+
+The functions `parse_schemes`, `to_standard` and `to_ramp` can also be imported to read the raw files and convert between the notations directly in Python.
 
 Quad precision only provides the raw `schemes_q#.out` file for each cycle (placed directly under `All_schemes/quad/order_n#/`, without a `cycles_q#` subfolder), since the notation transforms, distance-from-origin calculation and HDF5 export are not implemented for quad precision.
 
