@@ -1,5 +1,3 @@
-[![DOI](https://zenodo.org/badge/1135085602.svg)](https://doi.org/10.5281/zenodo.18347429)
-
 # Trotter-Suzuki decomposition schemes implementation
 
 The code implements the recursive formulae for high order Trotterizations, which allows the evaluation of their efficiency, if the scheme parameters are known.

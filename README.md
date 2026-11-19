@@ -1,3 +1,5 @@
+[![DOI](https://zenodo.org/badge/1135085602.svg)](https://doi.org/10.5281/zenodo.18347429)
+
 # Efficient High Order Trotterizations
 
 A derivation, implementation and application of Trotter-Suzuki decomposition schemes at high orders.
