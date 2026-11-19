@@ -260,11 +260,11 @@ void Scheme<RealT>::transform(const int &nq)
 
   if (q < 7 && n < 4)
   {
-    runtime_error("Cannot transform to higher q if the n < 4\nIncrese the desired order");
+    throw runtime_error("Cannot transform to higher q if the n < 4\nIncrease the desired order");
   }
   else if (q < 17 && n < 6)
   {
-    runtime_error("Cannot transform to higher q if the n < 6\nIncrese the desired order");
+    throw runtime_error("Cannot transform to higher q if the n < 6\nIncrease the desired order");
   }
 
   coefs.alpha = coefs.alpha.transform(nq);

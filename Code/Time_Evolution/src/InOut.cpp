@@ -399,7 +399,7 @@ InOut<Scalar>::InOut(const string read_file)
   rfile.open(read_file);
   if (!rfile)
   {
-    runtime_error("Error opening input file.\n");
+    throw runtime_error("Error opening input file: " + read_file);
   }
 
   cout << "Reading input file: " << read_file << endl

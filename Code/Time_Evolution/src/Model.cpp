@@ -34,7 +34,7 @@ void Model<RealT>::add_term(const int &ind, const int &dir, const vector<array<O
     termsZ[ind] = term;
     break;
   default:
-    invalid_argument("Invalid direction");
+    throw invalid_argument("Invalid direction");
     break;
   }
 }

@@ -10,7 +10,8 @@ using MatrixXcld = Eigen::Matrix<complex<long double>, Eigen::Dynamic, Eigen::Dy
 using Eigen::MatrixXd;
 using MatrixXld = Eigen::Matrix<long double, Eigen::Dynamic, Eigen::Dynamic>;
 
-int main(int argc, char *argv[])
+// Runs the routine given by the input file (see main below for the error handling)
+static int run(int argc, char *argv[])
 {
   // Check if input file is provided
   if (argc != 3)
@@ -38,7 +39,7 @@ int main(int argc, char *argv[])
     }
     default:
     {
-      runtime_error("Invalid routine!");
+      throw runtime_error("Invalid routine!");
     }
     }
   }
@@ -59,7 +60,7 @@ int main(int argc, char *argv[])
     }
     default:
     {
-      runtime_error("Invalid routine!");
+      throw runtime_error("Invalid routine!");
     }
     }
   }
@@ -80,7 +81,7 @@ int main(int argc, char *argv[])
     }
     default:
     {
-      runtime_error("Invalid routine!");
+      throw runtime_error("Invalid routine!");
     }
     }
   }
@@ -101,13 +102,13 @@ int main(int argc, char *argv[])
     }
     default:
     {
-      runtime_error("Invalid routine!");
+      throw runtime_error("Invalid routine!");
     }
     }
   }
   else
   {
-    runtime_error("Invalid scalar type!");
+    throw runtime_error("Invalid scalar type!");
   }
 
   auto end = chrono::high_resolution_clock::now();
@@ -115,4 +116,18 @@ int main(int argc, char *argv[])
   cout << "Time taken: " << fixed << setprecision(6) << duration.count() << " seconds" << std::endl;
 
   return 0;
+}
+
+int main(int argc, char *argv[])
+{
+  // Print errors (e.g. an invalid input file) as a message instead of terminating with an uncaught exception
+  try
+  {
+    return run(argc, argv);
+  }
+  catch (const exception &e)
+  {
+    cerr << "Error: " << e.what() << endl;
+    return 1;
+  }
 }
