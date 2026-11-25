@@ -1,6 +1,6 @@
 # Noisy quantum circuits
 
-This folder contains the scripts used to compare Trotter-Suzuki schemes as quantum circuits under gate noise, as presented in "Optimised 8th-order Trotter-Suzuki schemes for Quantum simulation".
+This folder contains the scripts used to compare Trotter-Suzuki schemes as quantum circuits under gate noise, as presented in "Optimised 8th-Order Trotter-Suzuki Schemes for Quantum Simulation" ([arXiv:2611.27896](https://arxiv.org/abs/2611.27896)).
 The circuits are synthesised with our Qiskit plugin [qiskit-omelyan](https://github.com/MarkoMalezic/qiskit-omelyan) ([10.5281/zenodo.24371684](https://doi.org/10.5281/zenodo.24371684)), based on the algorithm described in our Lattice 2025 proceedings ([arXiv:2602.21145](https://arxiv.org/abs/2602.21145)). It implements arbitrary symmetric Trotter-Suzuki schemes (in the ramp notation with parameters c, see `README-Schemes.md`) as well as a collection of schemes from the literature and from our papers.
 The circuits are simulated with Qiskit Aer, both without and with noise.
 

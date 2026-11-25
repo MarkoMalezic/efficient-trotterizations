@@ -7,7 +7,7 @@ A derivation, implementation and application of Trotter-Suzuki decomposition sch
 This repository contains the code required to reproduce the results presented in our papers:
 
 - M. Maležič and J. Ostmeyer, "Efficient Trotter-Suzuki Schemes for Long-time Quantum Dynamics", J. Phys. A, [10.1088/1751-8121/ae919f](https://doi.org/10.1088/1751-8121/ae919f) ([arXiv:2601.18756](https://arxiv.org/abs/2601.18756))
-- M. Maležič and J. Ostmeyer, "Optimised 8th-order Trotter-Suzuki schemes for Quantum simulation" (arXiv link to follow)
+- M. Maležič and J. Ostmeyer, "Optimised 8th-Order Trotter-Suzuki Schemes for Quantum Simulation" ([arXiv:2611.27896](https://arxiv.org/abs/2611.27896))
 
 The algorithm used to implement such Omelyan-type schemes as quantum circuits (see [Quantum circuits](#quantum-circuits)) is described in our proceedings:
 

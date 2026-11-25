@@ -35,12 +35,16 @@ references:
         value: "arXiv:2601.18756"
         description: "arXiv preprint"
   - type: article
-    title: "Optimised 8th-order Trotter-Suzuki schemes for Quantum simulation"
+    title: "Optimised 8th-Order Trotter-Suzuki Schemes for Quantum Simulation"
     authors:
       - given-names: Marko
         family-names: Maležič
       - given-names: Johann
         family-names: Ostmeyer
+    identifiers:
+      - type: other
+        value: "arXiv:2611.27896"
+        description: "arXiv preprint"
   - type: conference-paper
     title: "Reducing the Gate Count with Efficient Trotter-Suzuki Schemes"
     authors:
